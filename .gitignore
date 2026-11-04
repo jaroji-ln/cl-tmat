@@ -1,0 +1,12 @@
+# Rule 6: raw data is never committed.
+data/raw/
+# Regenerated deterministically by src/01_prepare_gwt.py and src/02_build_features.py.
+data/processed/*
+!data/processed/.gitkeep
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+.DS_Store

@@ -1,0 +1,9 @@
+station,longitude,latitude,source,region
+BRG3,103.88232,-1.7145,estimated,"Batanghari, Jambi"
+BRG4,103.91762,-1.7282,estimated,"Batanghari, Jambi"
+BRG5,104.02562,-1.3826,estimated,"Batanghari, Jambi"
+BRG6,103.9693,-1.44281,published,"Batanghari, Jambi"
+BRG17,109.47732,-0.195,estimated,"Kubu Raya, West Kalimantan"
+BRG18,109.51923,-0.27979,published,"Kubu Raya, West Kalimantan"
+BRG19,109.55062,-0.2985,estimated,"Kubu Raya, West Kalimantan"
+BRG20,109.41272,-0.2402,estimated,"Kubu Raya, West Kalimantan"
