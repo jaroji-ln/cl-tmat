@@ -70,10 +70,21 @@ Tabel drift brief awal **dipensiunkan** (skripnya tidak tersimpan). Jangan dikut
 - Normal hujan: klimatologi CHIRPS 1988–2017, seluruhnya sebelum periode studi. Hari kering: hujan < 1 mm.
 - Laju penurunan TMAT 14 hari untuk pemicu belum dibuat; dihitung di sesi continual learning.
 
+## Baseline Fase 2
+
+`src/03_baselines.py` menghasilkan `results/baseline_R.csv`, `results/baseline_summary.csv`, `results/normalization_t1.json`, dan `results/experiments.csv`. Run asap (`--max-epochs`) tidak menulis apa pun. Keluaran identik antar-run.
+
+- Tiap task dibagi sekali: 30% terakhir menurut tanggal target menjadi holdout; pelatihan tidak pernah memakai holdout. Normalisasi dari fold latih T1; kolom musiman dan one-hot tidak diskalakan.
+- LSTM 2 lapis 64 unit, jendela 30 hari, memprediksi perubahan dari t−1. Hiperparameter tetap (`CONFIG`), tanpa penyetelan pada T3–T5.
+- `mae_online_*`: prakiraan seluruh baris task memakai model yang sudah ada saat prakiraan dibuat. Inilah metrik yang mencakup awal kekeringan. Nilai R memakai holdout saja (T4 n=66, T5 n=42).
+- Forgetting dihitung `galat akhir − galat historis terkecil` (positif = memburuk), karena rumus di protokol 3.4 terbalik untuk galat.
+- `B1_persistence` memakai t−1 agar setara informasinya dengan model lain; `B1_persistence_tmat_t` adalah definisi harfiah protokol.
+- Peringatan impor: LightGBM dan PyTorch berbenang-banyak bisa segfault bila satu proses. LightGBM diimpor saat dipakai, dan PyTorch dibatasi satu benang.
+
 ## Penguncian pemicu (keputusan peneliti, 2026-11-04)
 
 - `config/trigger.yaml` memuat bobot, ambang, dan jendela minimum antar-adaptasi. Nilainya dikalibrasi dari T1–T2 saja. Saat lengkap: `status: frozen`, commit, git tag beranotasi, cantumkan hash di artikel. Baru setelah itu eksperimen T4/T5 boleh dijalankan. Jangan membuat tag selama nilainya masih null.
-- Tag hanya membuktikan konfigurasi terkunci sebelum eksperimen, bukan bahwa data T4/T5 belum pernah dilihat. Statistik deskriptif defisit dan TMAT T4/T5 serta hasil Ridge sudah dilihat di Fase 1, dan komentar skrip asli peneliti menyebut batas rezim ditentukan dari pola musim pada data. Tulis ini terbuka di artikel.
+- Tag hanya membuktikan konfigurasi terkunci sebelum eksperimen, bukan bahwa data T4/T5 belum pernah dilihat. Statistik deskriptif defisit dan TMAT T4/T5, hasil Ridge, serta hasil baseline T3–T5 (Fase 2) sudah dilihat sebelum penguncian, dan komentar skrip asli peneliti menyebut batas rezim ditentukan dari pola musim pada data. Tulis ini terbuka di artikel.
 - Kalibrasi pada kekeringan sedang (T2), uji pada yang ekstrem (T4): nyatakan sebagai pilihan desain. Keterbatasan yang harus ditulis sendiri: hanya satu episode kekeringan parah.
 - Laporkan seluruh kurva akurasi terhadap jumlah adaptasi, bukan hanya ambang terpilih (sapuan Fase 4.2, transfer lintas-pulau Fase 4.3).
 - Galat prakiraan bergerak 14 hari paling rawan dituduh penyetelan tersembunyi. Ablasi Fase 4.1 harus menunjukkan kontribusi komponen domain di luar umpan balik galat; bila tidak, laporkan sebagai temuan.
@@ -88,3 +99,6 @@ Jangan menganggap ini selesai sebelum peneliti memutuskan.
 4. **Ambang pemicu tidak bisa dikalibrasi dari T1**, karena defisit T1 tidak pernah positif. Ambang juga tidak boleh dipilih dengan melihat T4/T5.
 5. **Statistik T1 membuat T4 jauh di luar rentang:** rerata z defisit T4 +4,4 (maks +7,0); 63% baris T4 punya fitur dengan |z| > 5; |z| terbesar 17,2 (`dry_spell_days`). Aturan 2 tetap berlaku; dampaknya harus ditangani di sesi model.
 6. **Satu kalender rezim untuk dua provinsi kurang pas di Kubu Raya:** Oktober 2018 dan Oktober 2019 berlabel kemarau, tetapi hujannya sekitar 450–490 mm dan 340–390 mm.
+7. **Persistensi mengalahkan semua model terlatih pada T4 online** (`results/baseline_summary.csv`), dan jarak B1 ke B3 LSTM hanya 2,7 mm. Menunggu keputusan peneliti soal pembingkaian dan seleksi hiperparameter berbasis T1–T2.
+8. **Batas informasi t−1 vs t:** protokol B1 memakai TMAT t, fitur berhenti di t−1. Menunggu keputusan peneliti.
+9. **Isi protokol yang berbeda dari kode:** 1.2 menyebut CHIRPS mulai 2018-03-01 (nyata 2018-01-01); 3.4 rumus forgetting; 3.5 Wilcoxon dengan 5 seed tidak bisa mencapai p < 0,05 dua sisi.

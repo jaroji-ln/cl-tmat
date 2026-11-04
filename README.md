@@ -2,7 +2,7 @@
 
 Peramalan tinggi muka air tanah (TMAT) gambut tropis dengan continual learning, dan pemicu adaptasi sadar-rezim berbasis indikator kekeringan hidrologi. Konteks riset dan aturan kerja ada di [CLAUDE.md](CLAUDE.md).
 
-Status saat ini: Fase 0–1. Metode baseline dan continual learning belum ada di repositori ini.
+Status saat ini: Fase 0–2. Metode continual learning belum ada di repositori ini. Protokol lengkap: [docs/protokol-riset-cl-tmat.md](docs/protokol-riset-cl-tmat.md).
 
 ## Menjalankan pipeline
 
@@ -12,6 +12,7 @@ pip install -r requirements.txt
 cd src
 python 01_prepare_gwt.py        # -> data/processed/gwt_clean.csv dan results/straight_runs.csv
 python 02_build_features.py     # -> data/processed/features.csv; butuh dua berkas CHIRPS di bawah
+python 03_baselines.py          # -> results/baseline_*.csv; sekitar 5 menit di CPU
 python 80_drift_regression.py   # -> results/drift_regression.csv dan results/experiments.csv
 python 81_data_audit.py         # -> results/data_audit.csv
 python 90_figure1.py            # -> figures/fig1_tmat_regimes_drift.{pdf,png}
