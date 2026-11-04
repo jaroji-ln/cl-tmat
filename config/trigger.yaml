@@ -1,0 +1,12 @@
+# Regime-aware adaptation trigger, fixed before any T4/T5 experiment.
+#
+# Values stay null until calibrated on T1-T2 only. When complete: set status to frozen,
+# commit, and create an annotated git tag; cite that commit hash in the paper.
+status: draft
+calibration_tasks: [T1_transisi_2018, T2_kemarau_2018]
+components:
+  rain_deficit_90d: {weight: null, threshold_mm: null}
+  tmat_decline_rate_14d: {weight: null, threshold_m_per_day: null}
+  forecast_error_ma_14d: {weight: null, threshold_m: null}
+combined_threshold: null
+min_days_between_adaptations: null

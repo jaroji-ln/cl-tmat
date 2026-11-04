@@ -10,7 +10,7 @@ Status saat ini: Fase 0–1. Metode baseline dan continual learning belum ada di
 pip install -r requirements.txt
 # Letakkan mmc1.xlsx (Taufik dkk. 2022, Data in Brief 41:107903) di data/raw/. Berkas ini tidak di-commit.
 cd src
-python 01_prepare_gwt.py        # -> data/processed/gwt_clean.csv
+python 01_prepare_gwt.py        # -> data/processed/gwt_clean.csv dan results/straight_runs.csv
 python 02_build_features.py     # -> data/processed/features.csv; butuh dua berkas CHIRPS di bawah
 python 80_drift_regression.py   # -> results/drift_regression.csv dan results/experiments.csv
 python 90_figure1.py            # -> figures/fig1_tmat_regimes_drift.{pdf,png}
@@ -42,6 +42,7 @@ data/external/   koordinat stasiun dan ekspor CHIRPS
 data/processed/  keluaran pipeline, dibuat ulang oleh skrip
 src/             skrip pipeline, common.py (konstanta), splits.py (pembagian temporal)
 results/         experiments.csv dan hasil uji regresi
+config/          konfigurasi pemicu, dikunci dengan git tag sebelum eksperimen T4/T5
 figures/         gambar artikel
 paper/           naskah
 tests/           pytest
