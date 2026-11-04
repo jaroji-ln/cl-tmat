@@ -3,7 +3,8 @@
 Ridge on TMAT lags only, 7-day horizon, targets in 2018 for training and 2019 for testing.
 The configuration is fixed here and is not tuned towards the table. Both per-station and
 panel fits run because the brief does not say which produced it; per-station exists only
-for this comparison (research models stay panel, rule 4).
+for this comparison (research models stay panel, rule 4). The table predates is_suspect, so
+it is compared on data with_suspect; suspect_excluded is the result to cite.
 """
 import importlib.util
 import json
@@ -52,7 +53,7 @@ def mae(predict, rows: pd.DataFrame) -> float:
     return float((predict(rows) - rows["target_tmat_m"]).abs().mean())
 
 
-def evaluate(gwt: pd.DataFrame) -> pd.DataFrame:
+def evaluate_rows(gwt: pd.DataFrame, data: str) -> pd.DataFrame:
     train, test = split_by_target_date(lag_rows(gwt), "2019-01-01")
     panel = fit_ridge(train, with_station=True)
     records = []
@@ -65,13 +66,20 @@ def evaluate(gwt: pd.DataFrame) -> pd.DataFrame:
             mae_pre, mae_drought = mae(predict, pre), mae(predict, drought)
             records.append(
                 {
-                    "mode": mode, "station": station, "n_pre": len(pre), "n_drought": len(drought),
+                    "data": data, "mode": mode, "station": station, "n_pre": len(pre), "n_drought": len(drought),
                     "mae_pre_m": mae_pre, "mae_drought_m": mae_drought, "ratio": mae_drought / mae_pre,
                     "brief_mae_pre_m": ref_pre, "brief_mae_drought_m": ref_drought, "brief_ratio": ref_ratio,
                     "max_abs_diff_m": max(abs(mae_pre - ref_pre), abs(mae_drought - ref_drought)),
                 }
             )
     return pd.DataFrame(records)
+
+
+def evaluate(gwt: pd.DataFrame) -> pd.DataFrame:
+    return pd.concat(
+        [evaluate_rows(gwt.assign(is_suspect=False), "with_suspect"), evaluate_rows(gwt, "suspect_excluded")],
+        ignore_index=True,
+    )
 
 
 def log_experiment(result: pd.DataFrame, seconds: float) -> None:
@@ -96,7 +104,7 @@ def main() -> int:
     result.to_csv(DRIFT_CSV, index=False, float_format="%.4f")
     log_experiment(result, time.perf_counter() - started)
     print(result.drop(columns=["brief_ratio"]).round(3).to_string(index=False))
-    worst = result.groupby("mode")["max_abs_diff_m"].max()
+    worst = result[result["data"] == "with_suspect"].groupby("mode")["max_abs_diff_m"].max()
     print(f"\nSelisih terbesar terhadap tabel (toleransi {MAE_TOLERANCE_M} m):\n{worst.round(3).to_string()}")
     if (worst > MAE_TOLERANCE_M).all():
         print("TIDAK TEREPRODUKSI: laporkan apa adanya, jangan menyetel konfigurasi agar cocok.", file=sys.stderr)

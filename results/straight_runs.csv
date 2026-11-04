@@ -1,0 +1,2 @@
+station,start,end,days,slope_mm_per_day,residual_sd_mm,change_sd_m,ends_station_record
+BRG3,2019-07-14,2019-08-27,45,-7.17,0.28,0.00037,True

@@ -22,6 +22,14 @@ def test_imputed_days_exist_so_the_filter_is_exercised(gwt):
     assert gwt["is_imputed"].sum() > 0
 
 
+def test_suspect_values_reach_neither_targets_nor_inputs(table, gwt):
+    flags = gwt.set_index(["station", "date"])["is_suspect"]
+    targets = pd.MultiIndex.from_frame(table[["station", "target_date"]].rename(columns={"target_date": "date"}))
+    assert not flags.loc[targets].any()
+    first_suspect = gwt.loc[gwt["is_suspect"], "date"].min()
+    assert (table.loc[table["station"] == "BRG3", "target_date"] < first_suspect).all()
+
+
 def test_target_is_tmat_seven_days_ahead(table, gwt):
     values = gwt.set_index(["station", "date"])["tmat_m"]
     keys = pd.MultiIndex.from_arrays([table["station"], table["date"] + pd.Timedelta(days=HORIZON_DAYS)])

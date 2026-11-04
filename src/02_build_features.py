@@ -2,8 +2,9 @@
 
 A row dated t is a forecast whose inputs stop at t-1 and whose target is TMAT at t+7.
 `task` follows the target date, so a training target never falls in a test regime.
-Rows are dropped when the target is missing or imputed, when TMAT at t-1 is imputed
-(its interpolation anchor lies in the future), or when any feature is missing.
+Suspect values count as missing. Rows are dropped when the target is missing or imputed,
+when TMAT at t-1 is imputed (its interpolation anchor lies in the future), or when any
+feature is missing.
 
 Output: data/processed/features.csv
 """
@@ -55,7 +56,8 @@ def tmat_features(group: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_tmat_columns(gwt: pd.DataFrame) -> pd.DataFrame:
-    parts = [pd.concat([group, tmat_features(group)], axis=1) for _, group in gwt.groupby("station", sort=False)]
+    usable = gwt.assign(tmat_m=gwt["tmat_m"].mask(gwt["is_suspect"]))
+    parts = [pd.concat([group, tmat_features(group)], axis=1) for _, group in usable.groupby("station", sort=False)]
     return pd.concat(parts, ignore_index=True)
 
 

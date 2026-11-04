@@ -40,6 +40,24 @@ def test_imputation_is_limited_and_never_overwrites_observations(raw, gwt):
         assert longest <= MAX_INTERP_DAYS
 
 
+def test_suspect_flag_covers_only_the_brg3_segment(gwt):
+    suspect = gwt[gwt["is_suspect"]]
+    assert set(suspect["station"]) == {"BRG3"}
+    assert suspect["date"].min() == pd.Timestamp("2019-07-10")
+    assert suspect["date"].max() == pd.Timestamp("2019-08-27")
+    assert len(suspect) == 49
+    assert suspect["tmat_m"].notna().all()  # kept for transparency, excluded downstream
+
+
+def test_objective_rule_finds_only_the_flagged_straight_run(prepare, gwt):
+    runs = prepare.straight_runs(gwt)
+    assert runs[["station", "days", "ends_station_record"]].to_dict("records") == [
+        {"station": "BRG3", "days": 45, "ends_station_record": True}
+    ]
+    assert str(runs["start"].item()) == "2019-07-14" and str(runs["end"].item()) == "2019-08-27"
+    assert runs["residual_sd_mm"].item() < 0.5
+
+
 @pytest.mark.parametrize("label,start,end,expected", REGIMES)
 def test_regime_day_counts_match_brief(gwt, label, start, end, expected):
     usable = gwt[gwt["tmat_m"].notna() & (gwt["regime"] == label)]
