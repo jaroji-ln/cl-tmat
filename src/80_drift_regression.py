@@ -1,10 +1,10 @@
-"""Regression check of the static-model drift table in the research brief.
+"""Static-model degradation evidence for Figure 1c.
 
 Ridge on TMAT lags only, 7-day horizon, targets in 2018 for training and 2019 for testing.
-The configuration is fixed here and is not tuned towards the table. Both per-station and
-panel fits run because the brief does not say which produced it; per-station exists only
-for this comparison (research models stay panel, rule 4). The table predates is_suspect, so
-it is compared on data with_suspect; suspect_excluded is the result to cite.
+panel with suspect_excluded is the result to cite. per_station is for the appendix, and
+with_suspect only measures how much the BRG3 segment moves the numbers.
+
+Output: results/drift_regression.csv
 """
 import importlib.util
 import json
@@ -18,15 +18,16 @@ from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from common import DRIFT_CSV, DRIFT_TABLE, EXPERIMENTS_CSV, GWT_CLEAN_CSV, SEED, STATIONS
+from common import DRIFT_CSV, EXPERIMENTS_CSV, GWT_CLEAN_CSV, SEED, STATIONS, SUSPECT_SEGMENTS
 from splits import split_by_target_date
 
 ALPHA = 1.0
-MAE_TOLERANCE_M = 0.02
+DROUGHT_STATIONS = ["BRG3", "BRG5", "BRG6", "BRG19", "BRG20"]  # the others have no T4 rows
 CONFIG = {
     "model": "Ridge", "alpha": ALPHA, "scaler": "StandardScaler fit on train", "horizon_days": 7,
     "features": "tmat lags 1,2,3,5,7,14,21,30", "train": "target_date < 2019-01-01",
     "pre_drought": "target_date 2019-01-01..2019-06-30", "drought": "target_date 2019-07-01..2019-10-31",
+    "suspect_segments": SUSPECT_SEGMENTS,
 }
 
 _spec = importlib.util.spec_from_file_location("build_features", Path(__file__).with_name("02_build_features.py"))
@@ -57,7 +58,7 @@ def evaluate_rows(gwt: pd.DataFrame, data: str) -> pd.DataFrame:
     train, test = split_by_target_date(lag_rows(gwt), "2019-01-01")
     panel = fit_ridge(train, with_station=True)
     records = []
-    for station, (ref_pre, ref_drought, ref_ratio) in DRIFT_TABLE.items():
+    for station in DROUGHT_STATIONS:
         rows = test[test["station"] == station]
         pre = rows[rows["target_date"] <= "2019-06-30"]
         drought = rows[(rows["target_date"] >= "2019-07-01") & (rows["target_date"] <= "2019-10-31")]
@@ -68,8 +69,6 @@ def evaluate_rows(gwt: pd.DataFrame, data: str) -> pd.DataFrame:
                 {
                     "data": data, "mode": mode, "station": station, "n_pre": len(pre), "n_drought": len(drought),
                     "mae_pre_m": mae_pre, "mae_drought_m": mae_drought, "ratio": mae_drought / mae_pre,
-                    "brief_mae_pre_m": ref_pre, "brief_mae_drought_m": ref_drought, "brief_ratio": ref_ratio,
-                    "max_abs_diff_m": max(abs(mae_pre - ref_pre), abs(mae_drought - ref_drought)),
                 }
             )
     return pd.DataFrame(records)
@@ -82,17 +81,17 @@ def evaluate(gwt: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def log_experiment(result: pd.DataFrame, seconds: float) -> None:
+def log_experiment(experiment_id: str, config: dict, seed: int, metrics, seconds: float, path=EXPERIMENTS_CSV) -> None:
     """Upsert one row per experiment id so reruns do not grow the log."""
     row = {
-        "experiment_id": "drift_regression_ridge_lags", "config": json.dumps(CONFIG, sort_keys=True), "seed": SEED,
-        "metrics": json.dumps(result.round(4).to_dict("records"), sort_keys=True), "runtime_seconds": round(seconds, 2),
+        "experiment_id": experiment_id, "config": json.dumps(config, sort_keys=True), "seed": seed,
+        "metrics": json.dumps(metrics, sort_keys=True), "runtime_seconds": round(seconds, 2),
     }
     log = pd.DataFrame([row])
-    if EXPERIMENTS_CSV.exists():
-        previous = pd.read_csv(EXPERIMENTS_CSV)
-        log = pd.concat([previous[previous["experiment_id"] != row["experiment_id"]], log], ignore_index=True)
-    log.to_csv(EXPERIMENTS_CSV, index=False)
+    if path.exists():
+        previous = pd.read_csv(path)
+        log = pd.concat([previous[previous["experiment_id"] != experiment_id], log], ignore_index=True)
+    log.to_csv(path, index=False)
 
 
 def main() -> int:
@@ -102,13 +101,8 @@ def main() -> int:
     started = time.perf_counter()
     result = evaluate(pd.read_csv(GWT_CLEAN_CSV, parse_dates=["date"]))
     result.to_csv(DRIFT_CSV, index=False, float_format="%.4f")
-    log_experiment(result, time.perf_counter() - started)
-    print(result.drop(columns=["brief_ratio"]).round(3).to_string(index=False))
-    worst = result[result["data"] == "with_suspect"].groupby("mode")["max_abs_diff_m"].max()
-    print(f"\nSelisih terbesar terhadap tabel (toleransi {MAE_TOLERANCE_M} m):\n{worst.round(3).to_string()}")
-    if (worst > MAE_TOLERANCE_M).all():
-        print("TIDAK TEREPRODUKSI: laporkan apa adanya, jangan menyetel konfigurasi agar cocok.", file=sys.stderr)
-        return 2
+    log_experiment("drift_regression_ridge_lags", CONFIG, SEED, result.round(4).to_dict("records"), time.perf_counter() - started)
+    print(result.round(3).to_string(index=False))
     return 0
 
 

@@ -13,6 +13,7 @@ FEATURES_CSV = ROOT / "data" / "processed" / "features.csv"
 EXPERIMENTS_CSV = ROOT / "results" / "experiments.csv"
 DRIFT_CSV = ROOT / "results" / "drift_regression.csv"
 STRAIGHT_RUNS_CSV = ROOT / "results" / "straight_runs.csv"
+AUDIT_CSV = ROOT / "results" / "data_audit.csv"
 
 SEED = 42
 STATIONS = ["BRG3", "BRG4", "BRG5", "BRG6", "BRG17", "BRG18", "BRG19", "BRG20"]
@@ -34,16 +35,6 @@ REGIMES = [
 # 2019-07-10 without a rain event, then follows a straight line (-7.17 mm/day, 0.28 mm
 # residual) from 2019-07-14 until the record ends. See straight_runs() in 01_prepare_gwt.py.
 SUSPECT_SEGMENTS = [("BRG3", "2019-07-10", "2019-08-27")]
-
-# Station: (MAE pre-drought m, MAE 2019 drought m, ratio) as stated in the brief.
-DRIFT_TABLE = {
-    "BRG3": (0.051, 0.298, 5.84),
-    "BRG6": (0.057, 0.144, 2.53),
-    "BRG5": (0.059, 0.117, 1.98),
-    "BRG20": (0.053, 0.088, 1.66),
-    "BRG19": (0.043, 0.059, 1.37),
-}
-
 
 def regime_of(dates: pd.Series) -> pd.Series:
     """Label each date with its regime; dates outside every regime become NaN."""

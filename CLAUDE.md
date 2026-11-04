@@ -1,12 +1,14 @@
 # cl-tmat — konteks riset untuk setiap sesi
 
+Protokol lengkap: `docs/protokol-riset-cl-tmat.md`.
+
 Basis kode artikel riset untuk jurnal Q1/Q2 (Ecological Informatics, Environmental Modelling & Software, atau IEEE Access).
 
 **Pertanyaan riset.** Metode continual learning mana yang paling efektif menjaga akurasi peramalan tinggi muka air tanah (TMAT) gambut tropis saat rezim hidrologi berubah, dan dapatkah pemicu adaptasi berbasis pengetahuan domain mengungguli jadwal adaptasi tetap?
 
 **Kontribusi utama.** Pemicu adaptasi sadar-rezim yang memakai indikator kekeringan hidrologi (defisit hujan kumulatif 90 hari, laju penurunan TMAT 14 hari), bukan jadwal kalender.
 
-## Tujuh aturan yang tidak boleh dilanggar
+## Aturan yang tidak boleh dilanggar
 
 1. Semua pembagian data berbasis waktu, tidak pernah acak. Pembagian acak pada deret waktu adalah kebocoran data dan akan langsung ditolak reviewer.
 2. Statistik normalisasi diambil dari task pertama (T1) saja, lalu dibekukan. Menormalkan dengan statistik seluruh data adalah kebocoran halus yang fatal bila ketahuan.
@@ -15,6 +17,7 @@ Basis kode artikel riset untuk jurnal Q1/Q2 (Ecological Informatics, Environment
 5. Setiap eksperimen dicatat ke `results/experiments.csv`: konfigurasi, seed, semua metrik, waktu jalan.
 6. `data/raw/` tidak pernah di-commit. Masuk `.gitignore`.
 7. Jangan pernah mengarang angka hasil. Kalau sebuah langkah gagal atau hasilnya mencurigakan, laporkan apa adanya.
+8. Angka yang tidak punya skrip di repositori tidak boleh dipakai (ditetapkan peneliti, 2026-11-04). Angka kualitas data dibangun ulang oleh `src/81_data_audit.py` ke `results/data_audit.csv`.
 
 ## Fakta data terverifikasi
 
@@ -48,24 +51,14 @@ T4 dan T5 tipis; karena itu model harus panel/global. Jangan buat model per stas
 - 2019-07-10: lompatan −0,254 m tanpa kejadian hujan (0 mm pada 07-09 dan 07-10).
 - 2019-07-14 s.d. 08-27 (45 hari): garis lurus −7,17 mm/hari, residual 0,28 mm, selisih harian hanya −0,007/−0,008, sd selisih 0,00037 (115× lebih kecil dari BRG3 sebelumnya, sd 0,0427), berakhir tepat di ujung rekaman. Kelengkungan nol, padahal resesi gambut cekung; ada 58 mm hujan tanpa respons.
 - Aturan objektif (`straight_runs` di `01_prepare_gwt.py`: ≥14 hari, rentang selisih ≤2 mm) hanya menangkap segmen ini di seluruh dataset. Hasil: `results/straight_runs.csv`.
-- Pembanding berjendela sama (44 selisih): sd terkecil stasiun lain 11–56× lebih besar. BRG6 2019-07-23 s.d. 08-26: sd 0,00428, residual linear 5,49 mm, kelengkungan melambat.
+- Pembanding berjendela sama (44 selisih): sd terkecil stasiun lain 11–56× lebih besar. BRG6 2019-07-23 s.d. 08-26: sd 0,00428, residual linear 5,41 mm, kelengkungan melambat.
 - 2019-07-10 s.d. 07-13 ikut ditandai karena berada pada level pascalompatan. Bukan bagian garis lurus (residual menjadi 1,2 mm bila disertakan).
 
-Jangan menjadikan 5,84× klaim utama. `results/drift_regression.csv` memisahkan `with_suspect` (hanya untuk membandingkan tabel lama) dan `suspect_excluded` (yang dikutip).
+`results/drift_regression.csv` memisahkan `with_suspect` dan `suspect_excluded` (yang dikutip).
 
-## Bukti drift dari brief
+## Bukti degradasi (protokol 2.3)
 
-Ridge, hanya fitur lag, tanpa hujan, horizon 7 hari, latih 2018, uji 2019.
-
-| Stasiun | MAE pra-kemarau (m) | MAE kemarau 2019 (m) | Rasio |
-|---|---|---|---|
-| BRG3 | 0,051 | 0,298 | 5,84× |
-| BRG6 | 0,057 | 0,144 | 2,53× |
-| BRG5 | 0,059 | 0,117 | 1,98× |
-| BRG20 | 0,053 | 0,088 | 1,66× |
-| BRG19 | 0,043 | 0,059 | 1,37× |
-
-Tabel ini dibuat sebelum `is_suspect` ada; baris BRG3 tidak boleh dikutip. Status reproduksi: lihat `results/drift_regression.csv` dan `tests/test_drift_regression.py`. Jangan menyesuaikan angka atau konfigurasi demi mencocokkan tabel.
+Tabel drift brief awal **dipensiunkan** (skripnya tidak tersimpan). Jangan dikutip. Sumber tunggal: `results/drift_regression.csv` dari `src/80_drift_regression.py`. Panel (c) Gambar 1 dan klaim utama memakai `panel` + `suspect_excluded`; `per_station` masuk lampiran; `with_suspect` hanya untuk mengukur dampak segmen.
 
 ## Konvensi pipeline
 
@@ -89,10 +82,9 @@ Tabel ini dibuat sebelum `is_suspect` ada; baris BRG3 tidak boleh dikutip. Statu
 
 Jangan menganggap ini selesai sebelum peneliti memutuskan.
 
-1. **Tabel drift tidak tereproduksi** dalam toleransi 0,02 m pada data `with_suspect` (selisih terbesar 0,045 m per stasiun, 0,105 m panel); `test_drift_table_is_reproduced_within_tolerance` merah. Skrip pembuat tabel belum tersedia. Panel (c) Gambar 1 masih memplot tabel ini.
+1. **Galat fotogrametri koordinat (273 m, 240 m, ±250 m) belum punya skrip di repositori**; kena aturan 8 bila dikutip di naskah.
 2. **Bilinear CHIRPS belum terverifikasi independen.** `00_fetch_chirps.js` sudah dijalankan peneliti dan keluarannya lolos validasi kelengkapan, tetapi perbedaannya dengan nearest-cell belum diuji langsung.
 3. **Defisit 90 hari tertinggal dari kejadian.** Pada baris `features.csv`, porsi defisit > 0 per task: T1 0%, T2 57%, T3 34%, T4 82%, T5 93%. Rerata T5 (195 mm) melebihi T4 (168 mm). Perlu dievaluasi bersama laju penurunan TMAT 14 hari, bukan sendiri.
 4. **Ambang pemicu tidak bisa dikalibrasi dari T1**, karena defisit T1 tidak pernah positif. Ambang juga tidak boleh dipilih dengan melihat T4/T5.
 5. **Statistik T1 membuat T4 jauh di luar rentang:** rerata z defisit T4 +4,4 (maks +7,0); 63% baris T4 punya fitur dengan |z| > 5; |z| terbesar 17,2 (`dry_spell_days`). Aturan 2 tetap berlaku; dampaknya harus ditangani di sesi model.
 6. **Satu kalender rezim untuk dua provinsi kurang pas di Kubu Raya:** Oktober 2018 dan Oktober 2019 berlabel kemarau, tetapi hujannya sekitar 450–490 mm dan 340–390 mm.
-7. **Dokumen protokol belum ada di repositori** (Fase 4.1–4.3 dirujuk dari pesan peneliti).

@@ -2,6 +2,9 @@ import pytest
 
 from conftest import load_script
 
+# Protocol 2.3, panel Ridge with the suspect segment excluded: pinned from this repository's own code.
+PANEL_RATIOS = {"BRG6": 2.94, "BRG5": 2.71, "BRG3": 2.16, "BRG19": 1.31, "BRG20": 1.08}
+
 
 @pytest.fixture(scope="module")
 def drift(gwt):
@@ -9,13 +12,11 @@ def drift(gwt):
     return module, module.evaluate(gwt)
 
 
-def test_drift_table_is_reproduced_within_tolerance(drift):
-    module, result = drift
-    worst = result[result["data"] == "with_suspect"].groupby("mode")["max_abs_diff_m"].max()
-    assert (worst <= module.MAE_TOLERANCE_M).any(), (
-        f"Tabel drift tidak tereproduksi; selisih terbesar per konfigurasi {worst.round(3).to_dict()} m, "
-        f"toleransi {module.MAE_TOLERANCE_M} m. Laporkan, jangan menyetel konfigurasi."
-    )
+@pytest.mark.parametrize("station,expected", PANEL_RATIOS.items())
+def test_panel_ratio_matches_protocol(drift, station, expected):
+    _, result = drift
+    row = result[(result["data"] == "suspect_excluded") & (result["mode"] == "panel") & (result["station"] == station)]
+    assert row["ratio"].item() == pytest.approx(expected, abs=0.005)
 
 
 @pytest.mark.parametrize("data", ["with_suspect", "suspect_excluded"])

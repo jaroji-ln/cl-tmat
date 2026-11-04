@@ -13,13 +13,12 @@ cd src
 python 01_prepare_gwt.py        # -> data/processed/gwt_clean.csv dan results/straight_runs.csv
 python 02_build_features.py     # -> data/processed/features.csv; butuh dua berkas CHIRPS di bawah
 python 80_drift_regression.py   # -> results/drift_regression.csv dan results/experiments.csv
+python 81_data_audit.py         # -> results/data_audit.csv
 python 90_figure1.py            # -> figures/fig1_tmat_regimes_drift.{pdf,png}
 cd .. && python -m pytest tests
 ```
 
 Skrip berhenti dengan pesan jelas bila masukannya belum ada; tidak ada data sintetis. Keluaran skrip deterministik.
-
-`80_drift_regression.py` keluar dengan kode 2 bila tabel drift tidak tereproduksi.
 
 ## Mengambil hujan CHIRPS
 
