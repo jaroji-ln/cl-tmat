@@ -1,6 +1,7 @@
 """Figure 1: TMAT at the 8 stations across regimes, and static-model degradation.
 
-The degradation panel plots DRIFT_TABLE from the research brief verbatim. See
+The degradation panel plots DRIFT_TABLE from the research brief verbatim, without BRG3,
+whose drought errors are measured against a suspect segment. See
 results/drift_regression.csv for whether the current pipeline reproduces it.
 
 Output: figures/fig1_tmat_regimes_drift.{pdf,png}
@@ -15,7 +16,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.lines import Line2D
 
-from common import DRIFT_TABLE, GWT_CLEAN_CSV, REGIMES, ROOT
+from common import DRIFT_TABLE, GWT_CLEAN_CSV, REGIMES, ROOT, SUSPECT_SEGMENTS
 
 OUTPUT_STEM = ROOT / "figures" / "fig1_tmat_regimes_drift"
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
@@ -40,7 +41,14 @@ def plot_series(ax, gwt: pd.DataFrame, title: str, stations: list[str]) -> None:
     ax.axhline(0, color=MUTED, lw=0.6, zorder=1)
     for station in stations:
         rows = gwt[gwt["station"] == station]
-        ax.plot(rows["date"], rows["tmat_m"], color=COLORS[station], lw=1.1, label=station, zorder=2)
+        ax.plot(rows["date"], rows["tmat_m"].mask(rows["is_suspect"]), color=COLORS[station], lw=1.1, label=station, zorder=2)
+        suspect = rows[rows["is_suspect"]]
+        if len(suspect):
+            ax.plot(suspect["date"], suspect["tmat_m"], color=MUTED, lw=1.1, ls=(0, (1, 1.5)), zorder=2)
+            ax.annotate(
+                f"{station} suspect segment,\nexcluded", (suspect["date"].iloc[-1], suspect["tmat_m"].iloc[-1]),
+                xytext=(5, -2), textcoords="offset points", va="top", color=MUTED, fontsize=7,
+            )
     ax.set_ylabel("Groundwater table (m)")
     ax.set_title(title, loc="left", color=INK, fontsize=9, pad=13)
     ax.legend(loc="lower left", ncol=4, frameon=False, handlelength=1.4, columnspacing=1.0)
@@ -50,14 +58,15 @@ def plot_series(ax, gwt: pd.DataFrame, title: str, stations: list[str]) -> None:
 
 
 def plot_drift(ax) -> None:
-    table = sorted(DRIFT_TABLE.items(), key=lambda item: item[1][2])
+    excluded = {station for station, *_ in SUSPECT_SEGMENTS}
+    table = sorted(((s, v) for s, v in DRIFT_TABLE.items() if s not in excluded), key=lambda item: item[1][2])
     for y, (station, (pre, drought, ratio)) in enumerate(table):
         ax.plot([pre, drought], [y, y], color=COLORS[station], lw=1.5, zorder=2)
         ax.scatter(pre, y, s=34, facecolor="white", edgecolor=COLORS[station], linewidth=1.5, zorder=3)
         ax.scatter(drought, y, s=34, color=COLORS[station], zorder=3)
         ax.text(drought + 0.006, y, f"{ratio:.2f}×", va="center", color=INK, fontsize=8)
     ax.set_yticks(range(len(table)), [station for station, _ in table])
-    ax.set_xlim(0, 0.34)
+    ax.set_xlim(0, 0.18)
     ax.set_ylim(-0.6, len(table) - 0.4)
     ax.set_xlabel("Static Ridge MAE, 7-day horizon (m)")
     ax.set_title("(c) Static-model degradation, trained on 2018", loc="left", color=INK, fontsize=9)
