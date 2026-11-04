@@ -61,6 +61,7 @@ Status reproduksi: lihat `results/drift_regression.csv` dan `tests/test_drift_re
 - Kolom `task` ditentukan oleh **tanggal target**, sehingga target baris latih tidak pernah jatuh ke rezim uji. Pakai `src/splits.py` untuk semua pembagian.
 - Baris dibuang bila target NaN/imputasi, bila TMAT t−1 hasil imputasi (titik ujung interpolasinya masih di masa depan), atau bila ada fitur NaN.
 - `features.csv` belum dinormalisasi. Normalisasi (aturan 2) dikerjakan di sesi model dengan statistik T1.
+- `rain_deficit_90d` = normal − jumlah hujan 90 hari (mm); positif berarti lebih kering dari normal.
 - Normal hujan: klimatologi CHIRPS 1988–2017, seluruhnya sebelum periode studi. Hari kering: hujan < 1 mm.
 - Laju penurunan TMAT 14 hari untuk pemicu belum dibuat; dihitung di sesi continual learning.
 
@@ -72,4 +73,8 @@ Jangan menganggap ini selesai sebelum peneliti memutuskan.
 2. **Tabel drift tidak tereproduksi** dalam toleransi 0,02 m (selisih terbesar 0,045 m per stasiun, 0,105 m panel); `test_drift_table_is_reproduced_within_tolerance` merah. Konfigurasi asli tabel tidak diketahui.
 3. **Segmen BRG3 mencurigakan:** lompatan −0,254 m pada 2019-07-10, lalu laju konstan −0,007 m/hari selama 45 hari sampai akhir deret 2019-08-27. Belum dikeluarkan dari data. BRG3 adalah bukti drift terkuat; perlu diperiksa sebelum dipakai sebagai klaim.
 4. **`01_prepare_gwt.py` ditulis dari spesifikasi**, bukan versi teruji milik peneliti yang tidak tersedia di repositori. Bandingkan bila versi itu tersedia.
-5. **`features.csv` menunggu** `chirps_stations.csv` dan `chirps_climatology.csv`. `00_fetch_chirps.js` baru diperiksa sintaksnya, belum dijalankan di Earth Engine.
+5. **Bilinear CHIRPS belum terverifikasi independen.** `00_fetch_chirps.js` sudah dijalankan peneliti dan keluarannya lolos validasi kelengkapan, tetapi perbedaannya dengan nearest-cell belum diuji langsung.
+6. **Defisit 90 hari tertinggal dari kejadian.** Pada baris `features.csv`, porsi defisit > 0 per task: T1 0%, T2 57%, T3 34%, T4 79%, T5 93%. BRG3, penurunan terbesar di T4, justru rerata defisitnya −7 mm. Rerata T5 (195 mm) melebihi T4 (139 mm). Perlu dievaluasi bersama laju penurunan TMAT 14 hari, bukan sendiri.
+7. **Ambang pemicu tidak bisa dikalibrasi dari T1**, karena defisit T1 tidak pernah positif. Ambang juga tidak boleh dipilih dengan melihat T4/T5.
+8. **Statistik T1 membuat T4 jauh di luar rentang:** rerata z defisit T4 +4,0 (maks +7,0); 57% baris T4 punya fitur dengan |z| > 5; |z| terbesar 17,2 (`dry_spell_days`). Aturan 2 tetap berlaku; dampaknya harus ditangani di sesi model.
+9. **Satu kalender rezim untuk dua provinsi kurang pas di Kubu Raya:** Oktober 2018 dan Oktober 2019 berlabel kemarau, tetapi hujannya sekitar 450–490 mm dan 340–390 mm.
