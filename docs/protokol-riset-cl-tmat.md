@@ -1,8 +1,10 @@
 # Protokol Pelaksanaan: Continual Learning untuk Peramalan TMAT Gambut Tropis
 
-Versi 2 · 4 November 2026 · dasar data: Taufik dkk. (2022), *Data in Brief* 41:107903
+Versi 3 · 7 November 2026 · dasar data: Taufik dkk. (2022), *Data in Brief* 41:107903
 
-> **Perubahan dari versi 1:** jumlah hari T3 dikoreksi (1.415, bukan 1.215); koordinat stasiun sudah tersedia (Fase 0.3); segmen BRG3 2019 ditandai `is_suspect`; tabel drift lama dipensiunkan karena skripnya tidak tersimpan dan diganti angka yang dibangun ulang dari kode repo; Fase 3.3 ditambah prosedur penguncian pemicu dan pernyataan keterbukaan.
+> **Perubahan v3:** CHIRPS mulai 2018-01-01; batas informasi = t; skill terhadap persistensi menjadi metrik utama; rumus forgetting dibetulkan tandanya; uji signifikansi dipasangkan per sel stasiun × task; satu putaran seleksi hiperparameter di T1–T2; daftar keterbukaan ditambah hasil baseline T3–T5; galat koordinat dari skrip (269 m, 244 m).
+>
+> **Perubahan v2 dari versi 1:** jumlah hari T3 dikoreksi (1.415, bukan 1.215); koordinat stasiun sudah tersedia (Fase 0.3); segmen BRG3 2019 ditandai `is_suspect`; tabel drift lama dipensiunkan karena skripnya tidak tersimpan dan diganti angka yang dibangun ulang dari kode repo; Fase 3.3 ditambah prosedur penguncian pemicu dan pernyataan keterbukaan.
 
 ---
 
@@ -30,7 +32,7 @@ Repositori `cl-tmat` di root. Struktur: `data/{raw,external,processed}/`, `src/`
 
 ### 0.3 Koordinat stasiun — SELESAI
 
-Artikel hanya mencantumkan koordinat BRG6 dan BRG18 (Specifications Table). Enam lainnya diekstraksi fotogrametrik dari Gambar 1 artikel, divalidasi terhadap dua stasiun yang diketahui (galat 273 m dan 240 m), ketidakpastian sisa ±250 m. Berkas: `data/external/brg_station_coordinates.csv`.
+Artikel hanya mencantumkan koordinat BRG6 dan BRG18 (Specifications Table). Enam lainnya diekstraksi fotogrametrik dari Gambar 1 artikel (CC BY 4.0) dengan `src/extract_station_coords.py`, divalidasi terhadap dua stasiun yang diketahui (galat **269 m dan 244 m**, tercatat di `results/coord_validation.csv`), ketidakpastian sisa ±250 m. Berkas: `data/external/brg_station_coordinates.csv`.
 
 BRG19 berada dekat sudut sel CHIRPS (±66 m dan ±166 m dari batas), jadi ekstraksi hujan memakai **interpolasi bilinear**, bukan nearest-cell.
 
@@ -70,15 +72,17 @@ Perlakuan: nilai tetap ada di `gwt_clean.csv`, tetapi **tidak masuk fitur, targe
 
 ### 1.2 Curah hujan
 
-CHIRPS harian lewat Google Earth Engine (`src/00_fetch_chirps.js`), interpolasi bilinear, **2018-03-01 s/d 2020-01-31** — 5 minggu lebih awal dari data TMAT agar fitur kumulatif tersedia sejak hari pertama. ERA5-Land opsional untuk variabel tambahan.
+CHIRPS harian lewat Google Earth Engine (`src/00_fetch_chirps.js`), interpolasi bilinear, **2018-01-01 s/d 2020-01-31** — lebih dari 90 hari sebelum data TMAT pertama (2018-04-08), agar jendela defisit 90 hari sudah lengkap sejak hari pertama. ERA5-Land opsional untuk variabel tambahan.
 
 ### 1.3 Rekayasa fitur
 
 `src/02_build_features.py`. Target: TMAT pada **t+7**.
 
+**Batas informasi: t (bukan t−1).** Prakiraan dibuat pada akhir hari t, setelah pembacaan hari t tersedia. Ini sesuai praktik operasional: stasiun TMAT BRG/SiTMAT bersifat telemetri dan melapor setiap jam, sehingga pembacaan hari itu sudah ada saat keputusan dibuat. Semua fitur lag dimulai dari t (lag 0), persistensi memakai TMAT t, dan hujan memakai hujan sampai hari t. Tidak ada informasi setelah t yang boleh masuk fitur.
+
 | Kelompok | Fitur |
 | --- | --- |
-| Lag TMAT | t-1, t-2, t-3, t-5, t-7, t-14, t-21, t-30 |
+| Lag TMAT | t, t-1, t-2, t-3, t-5, t-7, t-14, t-21, t-30 |
 | Dinamika TMAT | selisih 1 dan 7 hari; rerata bergerak 7 dan 30 hari |
 | Hujan | harian; kumulatif 3, 7, 14, 30, 60 hari |
 | Kekeringan | hari berturut tanpa hujan; defisit hujan kumulatif 90 hari terhadap normal |
@@ -109,7 +113,9 @@ Keluaran saat ini: `data/processed/features.csv`, 3.004 baris.
 
 ### 2.2 Tulang punggung DL
 
-Satu saja, konsisten: LSTM kecil (2 lapis, 64 unit) atau TCN. Bukan Transformer.
+Satu saja, konsisten: LSTM kecil atau TCN. Bukan Transformer.
+
+**Seleksi hiperparameter — satu putaran, lalu dikunci.** Grid kecil yang ditulis sebelum dijalankan (mis. unit {32, 64}, lapis {1, 2}, dropout {0, 0,2}, lr {1e-3, 3e-3}, panjang jendela {14, 30}), validasi berbasis waktu **di dalam T1–T2 saja** (T1 + awal T2 untuk latih, akhir T2 untuk validasi). Anggaran seleksi yang setara diberikan juga ke Ridge (alpha) dan LightGBM, supaya perbandingan adil. Konfigurasi terpilih dikunci di `config/models.yaml` bersama tag pemicu. Naskah menyatakan terbuka bahwa putaran ini dilakukan setelah hasil baseline awal terlihat.
 
 ### 2.3 Bukti degradasi (Gambar 1c)
 
@@ -159,7 +165,9 @@ Dibandingkan terhadap jadwal tetap pada **anggaran adaptasi yang sama**.
 3. Tulis ke `config/trigger.yaml`, commit, beri **git tag** (`trigger-v1-locked`).
 4. Baru jalankan eksperimen T3–T5. Setiap perubahan konfigurasi setelah tag dicatat sebagai versi baru dan dilaporkan.
 
-**Batas klaim yang jujur.** Tag hanya membuktikan konfigurasi terkunci sebelum eksperimen CL dijalankan, **bukan** bahwa kami tidak pernah melihat data T4/T5. Statistik defisit T4/T5, MAE Ridge, dan Gambar 1 sudah dilihat sebelum penguncian. Naskah harus menyatakannya terbuka. Pertahanan utama terhadap tuduhan penyetelan bukan tag, melainkan: (a) kurva sensitivitas ambang penuh (Fase 4.2), (b) ablasi yang memisahkan komponen domain dari komponen galat (Fase 4.1), dan (c) transfer lintas-pulau (Fase 4.3).
+**Batas klaim yang jujur.** Tag hanya membuktikan konfigurasi terkunci sebelum eksperimen CL dijalankan, **bukan** bahwa kami tidak pernah melihat data T4/T5. Yang sudah dilihat sebelum penguncian: statistik defisit T4/T5, MAE Ridge, Gambar 1, dan **hasil baseline B1–B5 pada T3–T5**.
+
+**Komponen galat (w3) hanya punya data online sejak T2,** karena T1 tidak memiliki model pendahulu. Kalibrasi w3 bertumpu pada T2 saja; nyatakan ini di naskah. Naskah harus menyatakannya terbuka. Pertahanan utama terhadap tuduhan penyetelan bukan tag, melainkan: (a) kurva sensitivitas ambang penuh (Fase 4.2), (b) ablasi yang memisahkan komponen domain dari komponen galat (Fase 4.1), dan (c) transfer lintas-pulau (Fase 4.3).
 
 **Catatan kalibrasi:** rerata defisit hujan T2 di Kubu Raya negatif (sekitar −44 s/d −67 mm), artinya kemarau 2018 di Kalbar tidak defisit. Kalibrasi komponen defisit praktis hanya bertumpu pada Batanghari dan akhir T2. Laporkan ini, dan pertimbangkan kalibrasi per pulau atau normalisasi z per stasiun.
 
@@ -167,8 +175,9 @@ Dibandingkan terhadap jadwal tetap pada **anggaran adaptasi yang sama**.
 
 | Metrik | Makna |
 | --- | --- |
+| **Skill terhadap persistensi (metrik utama)** | 1 − MAE_model / MAE_persistensi, per task dan rerata |
 | MAE & RMSE akhir | Rerata semua task setelah task terakhir |
-| Forgetting rerata | mean(max galat historis − galat akhir) per task lama |
+| Forgetting rerata | mean(galat akhir − galat terkecil historis) per task lama; positif = lupa |
 | Backward / forward transfer | Pengaruh antar-task |
 | Jumlah adaptasi | Berapa kali model diperbarui |
 | Galat spesifik-kemarau | MAE pada T4 |
@@ -176,7 +185,9 @@ Dibandingkan terhadap jadwal tetap pada **anggaran adaptasi yang sama**.
 
 ### 3.5 Disiplin eksperimen
 
-5 seed per konfigurasi (rerata ± sd); semua run dicatat ke `results/experiments.csv`; uji Wilcoxon signed-rank antar metode.
+5 seed per konfigurasi (rerata ± sd); semua run dicatat ke `results/experiments.csv`.
+
+**Uji signifikansi:** jangan menguji antar seed — dengan n = 5, Wilcoxon dua sisi tidak bisa mencapai p < 0,0625. Unit pasangan adalah **sel stasiun × task** (galat dirata-ratakan atas seed di tiap sel). Untuk dua metode: Wilcoxon signed-rank berpasangan per sel. Untuk banyak metode: Friedman lalu post-hoc Nemenyi atau Holm (Demšar, 2006, JMLR). Laporkan juga ukuran efek (median selisih skill), bukan hanya p.
 
 ---
 
@@ -187,6 +198,7 @@ Dibandingkan terhadap jadwal tetap pada **anggaran adaptasi yang sama**.
 3. **Transfer lintas-pulau** — kalibrasi/latih di Batanghari, uji di Kubu Raya, dan sebaliknya.
 4. **Sensitivitas batas rezim** — geser batas rezim ±2 minggu; periksa apakah urutan metode berubah.
 5. **Analisis kegagalan** — periksa langsung periode tempat semua metode gagal.
+6. **Sensitivitas horizon** — ulangi perbandingan utama pada t+14 (dan t+3 sebagai kontrol). Gambut berdinamika lambat, sehingga persistensi sangat kuat di horizon pendek; ruang nilai tambah model dan adaptasi kemungkinan lebih besar di horizon panjang. Kurva skill terhadap horizon menjawab langsung "kapan adaptasi sepadan".
 
 ### Gambar
 
@@ -225,6 +237,7 @@ Jangan kirim ke Journal of Hydrology.
 | Risiko | Kemungkinan | Penanganan |
 | --- | --- | --- |
 | Metode CL tidak mengungguli retrain berkala | Nyata | Bingkai ulang: "kapan CL sepadan dan kapan tidak" |
+| Tidak ada model yang skill-nya jelas di atas persistensi pada t+7 | **Nyata** (persistensi dengan data t sudah mengalahkan oracle t−1) | Periksa segera setelah baseline dibangun ulang. Bila skill ≈ 0, horizon utama dipindah ke t+14 dan t+7 jadi analisis pendukung — putuskan sebelum kalibrasi pemicu, catat alasannya |
 | Komponen domain pemicu tidak berkontribusi | Sedang | Laporkan jujur dari ablasi; tetap layak terbit |
 | Data T4 terlalu tipis untuk hasil stabil | Sedang–tinggi | Gabungkan T4–T5, perbanyak seed, turunkan target ke Q2 |
 | Reviewer mempersoalkan penyetelan pada T4 | Sedang | Keterbukaan + kurva sensitivitas penuh + transfer lintas-pulau |
