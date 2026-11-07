@@ -64,18 +64,18 @@ def test_future_tmat_cannot_change_past_features(prepare, features_module, raw, 
     columns = features_module.TMAT_FEATURES
     def rows(frame):
         built = features_module.filter_rows(features_module.add_tmat_columns(prepare.clean(frame)), columns)
-        return built[built["date"] <= pd.Timestamp(cutoff) + pd.Timedelta(days=1)].set_index(["station", "date"])[columns]
+        return built[built["date"] <= pd.Timestamp(cutoff)].set_index(["station", "date"])[columns]
     base, changed = rows(raw), rows(perturb_after(raw, cutoff))
     pd.testing.assert_frame_equal(base, changed)
 
 
 def test_leak_check_detects_interpolation_anchor_without_the_filter(prepare, features_module, raw):
-    # Proves the test above has teeth: without dropping imputed t-1, the future does leak in.
+    # Proves the test above has teeth: without dropping an imputed day t, the future does leak in.
     cutoff = "2019-04-05"
     def rows(frame):
         built = features_module.add_tmat_columns(prepare.clean(frame))
         selected = built[(built["station"] == "BRG5") & (built["date"] == pd.Timestamp(cutoff))]
-        return selected["tmat_lag_1"].item()
+        return selected["tmat_lag_0"].item()
     assert rows(raw) != pytest.approx(rows(perturb_after(raw, cutoff)))
 
 
@@ -86,7 +86,7 @@ def test_future_rain_cannot_change_past_features(features_module, rain_stub):
     changed.loc[changed["date"] > cutoff, "precip_mm"] = 99.0
     base = features_module.rain_features(chirps, climatology)
     other = features_module.rain_features(changed, climatology)
-    keep = base["date"] <= cutoff + pd.Timedelta(days=1)
+    keep = base["date"] <= cutoff
     pd.testing.assert_frame_equal(base[keep], other[keep])
 
 
@@ -97,14 +97,15 @@ def test_rain_windows_and_deficit_by_hand(features_module):
     chirps = pd.DataFrame({"station": "BRG3", "date": dates, "precip_mm": rain})
     climatology = pd.DataFrame({"station": "BRG3", "doy": range(1, 367), "precip_clim_mm": 1.5})
     out = features_module.rain_features(chirps, climatology).set_index("date")
-    t = dates[102]  # inputs stop at dates[101]
+    t = dates[101]  # inputs include day t
     assert out.loc[t, "rain_1d"] == 6.0
     assert out.loc[t, "rain_sum_3d"] == 10.0
     assert out.loc[t, "rain_normal_90d"] == pytest.approx(135.0)
     assert out.loc[t, "rain_deficit_90d"] == pytest.approx(125.0)  # positive means drier than normal
     assert out.loc[t, "dry_spell_days"] == 0
-    assert out.loc[dates[110], "dry_spell_days"] == 8
+    assert out.loc[dates[110], "dry_spell_days"] == 9
     assert np.isnan(out.loc[dates[88], "rain_deficit_90d"])
+    assert not np.isnan(out.loc[dates[89], "rain_deficit_90d"])
 
 
 def test_missing_chirps_fails_clearly(features_module, gwt, monkeypatch, tmp_path):

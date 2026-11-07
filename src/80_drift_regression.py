@@ -25,7 +25,7 @@ ALPHA = 1.0
 DROUGHT_STATIONS = ["BRG3", "BRG5", "BRG6", "BRG19", "BRG20"]  # the others have no T4 rows
 CONFIG = {
     "model": "Ridge", "alpha": ALPHA, "scaler": "StandardScaler fit on train", "horizon_days": 7,
-    "features": "tmat lags 1,2,3,5,7,14,21,30", "train": "target_date < 2019-01-01",
+    "features": "tmat lags 0,1,2,3,5,7,14,21,30", "information_cutoff": "t", "train": "target_date < 2019-01-01",
     "pre_drought": "target_date 2019-01-01..2019-06-30", "drought": "target_date 2019-07-01..2019-10-31",
     "suspect_segments": SUSPECT_SEGMENTS,
 }
@@ -101,7 +101,7 @@ def main() -> int:
     started = time.perf_counter()
     result = evaluate(pd.read_csv(GWT_CLEAN_CSV, parse_dates=["date"]))
     result.to_csv(DRIFT_CSV, index=False, float_format="%.4f")
-    log_experiment("drift_regression_ridge_lags", CONFIG, SEED, result.round(4).to_dict("records"), time.perf_counter() - started)
+    log_experiment("drift_regression_ridge_lags_cut-t", CONFIG, SEED, result.round(4).to_dict("records"), time.perf_counter() - started)
     print(result.round(3).to_string(index=False))
     return 0
 

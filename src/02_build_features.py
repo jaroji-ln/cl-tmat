@@ -1,9 +1,9 @@
 """Build the 7-day-ahead panel feature table.
 
-A row dated t is a forecast whose inputs stop at t-1 and whose target is TMAT at t+7.
+A row dated t is a forecast issued at the end of day t: inputs stop at t, the target is TMAT at t+7.
 `task` follows the target date, so a training target never falls in a test regime.
 Suspect values count as missing. Rows are dropped when the target is missing or imputed,
-when TMAT at t-1 is imputed (its interpolation anchor lies in the future), or when any
+when TMAT at t is imputed (its interpolation anchor lies in the future), or when any
 feature is missing.
 
 Output: data/processed/features.csv
@@ -24,7 +24,7 @@ from common import (
     regime_of,
 )
 
-TMAT_LAGS = [1, 2, 3, 5, 7, 14, 21, 30]
+TMAT_LAGS = [0, 1, 2, 3, 5, 7, 14, 21, 30]
 RAIN_WINDOWS = [3, 7, 14, 30, 60]
 DEFICIT_WINDOW = 90
 DRY_DAY_MM = 1.0
@@ -39,16 +39,16 @@ FEATURE_COLUMNS = TMAT_FEATURES + RAIN_FEATURES + SEASON_FEATURES + STATION_FEAT
 
 def tmat_features(group: pd.DataFrame) -> pd.DataFrame:
     """TMAT inputs and target for one station on a gap-free daily calendar."""
-    past = group["tmat_m"].shift(1)
+    current = group["tmat_m"]
     out = pd.DataFrame(index=group.index)
     for lag in TMAT_LAGS:
-        out[f"tmat_lag_{lag}"] = group["tmat_m"].shift(lag)
-    out["tmat_diff_1"] = past - group["tmat_m"].shift(2)
-    out["tmat_diff_7"] = past - group["tmat_m"].shift(8)
-    out["tmat_ma_7"] = past.rolling(7, min_periods=7).mean()
-    out["tmat_ma_30"] = past.rolling(30, min_periods=30).mean()
-    out["last_input_imputed"] = group["is_imputed"].shift(1, fill_value=False).astype(bool)
-    out["n_imputed_inputs"] = group["is_imputed"].astype(int).shift(1).rolling(30, min_periods=1).sum().fillna(0).astype(int)
+        out[f"tmat_lag_{lag}"] = current.shift(lag)
+    out["tmat_diff_1"] = current - current.shift(1)
+    out["tmat_diff_7"] = current - current.shift(7)
+    out["tmat_ma_7"] = current.rolling(7, min_periods=7).mean()
+    out["tmat_ma_30"] = current.rolling(30, min_periods=30).mean()
+    out["last_input_imputed"] = group["is_imputed"].astype(bool)
+    out["n_imputed_inputs"] = group["is_imputed"].astype(int).rolling(max(TMAT_LAGS) + 1, min_periods=1).sum().astype(int)
     out["target_date"] = group["date"] + pd.Timedelta(days=HORIZON_DAYS)
     out["target_tmat_m"] = group["tmat_m"].shift(-HORIZON_DAYS)
     out["target_is_imputed"] = group["is_imputed"].shift(-HORIZON_DAYS, fill_value=False).astype(bool)
@@ -67,24 +67,23 @@ def filter_rows(df: pd.DataFrame, feature_columns: list[str]) -> pd.DataFrame:
 
 
 def rain_features(chirps: pd.DataFrame, climatology: pd.DataFrame) -> pd.DataFrame:
-    """Rain inputs per station-date, all ending at t-1, from complete daily series."""
+    """Rain inputs per station-date, all ending at t, from complete daily series."""
     normals = climatology.set_index(["station", "doy"])["precip_clim_mm"]
     parts = []
     for station, group in chirps.groupby("station", sort=False):
         group = group.sort_values("date")
         rain = group["precip_mm"].reset_index(drop=True)
-        past = rain.shift(1)
-        out = pd.DataFrame({"station": station, "date": group["date"].to_numpy(), "rain_1d": past})
+        out = pd.DataFrame({"station": station, "date": group["date"].to_numpy(), "rain_1d": rain})
         for window in RAIN_WINDOWS:
-            out[f"rain_sum_{window}d"] = past.rolling(window, min_periods=window).sum()
+            out[f"rain_sum_{window}d"] = rain.rolling(window, min_periods=window).sum()
         dry = (rain < DRY_DAY_MM).astype(int)
         spell = dry.groupby((dry == 0).cumsum()).cumsum()
         # A spell already running when the series starts has unknown length.
         spell[(dry == 0).cumsum() == 0] = np.nan
-        out["dry_spell_days"] = spell.shift(1)
+        out["dry_spell_days"] = spell
         normal_daily = normals.reindex(pd.MultiIndex.from_arrays([[station] * len(group), group["date"].dt.dayofyear])).to_numpy()
-        out["rain_sum_90d"] = past.rolling(DEFICIT_WINDOW, min_periods=DEFICIT_WINDOW).sum()
-        out["rain_normal_90d"] = pd.Series(normal_daily).shift(1).rolling(DEFICIT_WINDOW, min_periods=DEFICIT_WINDOW).sum()
+        out["rain_sum_90d"] = rain.rolling(DEFICIT_WINDOW, min_periods=DEFICIT_WINDOW).sum()
+        out["rain_normal_90d"] = pd.Series(normal_daily).rolling(DEFICIT_WINDOW, min_periods=DEFICIT_WINDOW).sum()
         # Positive means drier than the 1988-2017 normal.
         out["rain_deficit_90d"] = out["rain_normal_90d"] - out["rain_sum_90d"]
         parts.append(out)

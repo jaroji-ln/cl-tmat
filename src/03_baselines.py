@@ -4,7 +4,10 @@ Each task is split once by target date. R[i, j] is the holdout error of task j f
 available after training on task i. mae_online is the error on every row of a task using only
 the model that existed when that forecast was issued, so it covers drought onset too.
 
-Output: results/baseline_R.csv, results/baseline_summary.csv, results/normalization_t1.json,
+Skill is 1 - MAE_model / MAE_persistence on the same rows (protocol 3.4), and
+results/baseline_skill.csv pairs it by station x task cell (protocol 3.5).
+
+Output: results/baseline_R.csv, results/baseline_summary.csv, results/baseline_skill.csv, results/normalization_t1.json,
 data/processed/baseline_predictions.csv, and one row per method and seed in results/experiments.csv
 """
 import argparse
@@ -17,6 +20,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
+from scipy.stats import wilcoxon
 from sklearn.linear_model import Ridge
 
 from common import CHIRPS_CSV, FEATURES_CSV, GWT_CLEAN_CSV, ROOT
@@ -37,6 +41,7 @@ bf = _load("02_build_features.py", "build_features")
 log_experiment = _load("80_drift_regression.py", "drift_regression").log_experiment
 
 R_CSV = ROOT / "results" / "baseline_R.csv"
+SKILL_CSV = ROOT / "results" / "baseline_skill.csv"
 SUMMARY_CSV = ROOT / "results" / "baseline_summary.csv"
 NORMALIZATION_JSON = ROOT / "results" / "normalization_t1.json"
 PREDICTIONS_CSV = ROOT / "data" / "processed" / "baseline_predictions.csv"
@@ -47,14 +52,17 @@ RETRAIN_EVERY_DAYS = 30
 SEQUENCE_DAYS = 30
 TMAT_ALERT_M = -0.4  # PP 57/2016
 STATIC_TASKS = TASK_ORDER[:2]
-TARGET_SCALE = "tmat_lag_1"
+TARGET_SCALE = "tmat_lag_0"
 RAW_COLUMNS = bf.SEASON_FEATURES + bf.STATION_FEATURES + bf.PEATLAND_FEATURES  # bounded, no statistics needed
 SCALED_COLUMNS = bf.TMAT_FEATURES + bf.RAIN_FEATURES
 CONTEXT_COLUMNS = bf.RAIN_FEATURES + RAW_COLUMNS
+# Fixed before the cutoff-t run: material skill needs both, per station x task cell (protocol 3.5).
+MATERIAL_SKILL = {"median_cell_skill_min": 0.05, "wilcoxon_p_max": 0.05}
 CONFIG = {
+    "information_cutoff": "t",
     "ridge": {"alpha": 1.0},
     "lightgbm": {"n_estimators": 300, "learning_rate": 0.05, "num_leaves": 15, "min_child_samples": 10},
-    "lstm": {"layers": 2, "units": 64, "sequence_days": SEQUENCE_DAYS, "residual_on": "tmat_lag_1", "lr": 1e-3,
+    "lstm": {"layers": 2, "units": 64, "sequence_days": SEQUENCE_DAYS, "residual_on": "tmat_lag_0", "lr": 1e-3,
              "batch": 64, "max_epochs": 60, "patience": 8, "validation": "last 15% by target date", "grad_clip": 1.0},
     "holdout": "last 30% of each task by target date",
     "normalization": "T1 training fold, frozen; season and one-hot columns stay raw",
@@ -78,12 +86,12 @@ class Data:
 
 
 def build_sequences(rows: pd.DataFrame, gwt: pd.DataFrame, chirps: pd.DataFrame) -> np.ndarray:
-    """TMAT and rain for t-30..t-1 per row. Suspect values are masked and must not be reached."""
+    """TMAT and rain for t-29..t per row. Suspect values are masked and must not be reached."""
     tmat = {s: g.set_index("date")["tmat_m"].mask(g.set_index("date")["is_suspect"]) for s, g in gwt.groupby("station")}
     rain = {s: g.set_index("date")["precip_mm"] for s, g in chirps.groupby("station")}
     output = np.empty((len(rows), SEQUENCE_DAYS, 2))
     for i, (station, date) in enumerate(zip(rows["station"], rows["date"])):
-        window = pd.date_range(date - pd.Timedelta(days=SEQUENCE_DAYS), periods=SEQUENCE_DAYS)
+        window = pd.date_range(date - pd.Timedelta(days=SEQUENCE_DAYS - 1), periods=SEQUENCE_DAYS)
         output[i, :, 0] = tmat[station].reindex(window).to_numpy()
         output[i, :, 1] = rain[station].reindex(window).to_numpy()
     if np.isnan(output).any():
@@ -277,18 +285,16 @@ def run_lstm_methods(data: Data, seed: int, max_epochs: int | None = None) -> li
     return results
 
 
-def run_deterministic_methods(data: Data, tmat_at_t: np.ndarray) -> list[dict]:
+def run_deterministic_methods(data: Data) -> list[dict]:
     results = []
     rows = data.rows
     seed = DETERMINISTIC_SEED
     static_index = train_index(data, STATIC_TASKS)
     static_online_mask = rows["task"].isin(TASK_ORDER[2:]).to_numpy()
 
-    persistence = rows["tmat_lag_1"].to_numpy()
+    persistence = rows["tmat_lag_0"].to_numpy()
     results.append({"method": "B1_persistence", "seed": seed, "by_task": dict.fromkeys(TASK_ORDER, persistence),
                     "online": persistence, "adaptations": 0, "seconds": 0.0})
-    results.append({"method": "B1_persistence_tmat_t", "seed": seed, "by_task": dict.fromkeys(TASK_ORDER, tmat_at_t),
-                    "online": tmat_at_t, "adaptations": 0, "seconds": 0.0})
     started = time.perf_counter()
     prediction = fit_ridge_lags(data, static_index)
     results.append({"method": "B2_static_ridge_lags_control", "seed": seed, "by_task": dict.fromkeys(TASK_ORDER[1:], prediction),
@@ -308,6 +314,48 @@ def run_deterministic_methods(data: Data, tmat_at_t: np.ndarray) -> list[dict]:
     return results
 
 
+def cell_mae(data: Data, prediction: np.ndarray, mask: np.ndarray) -> pd.Series:
+    """Mean absolute error per station x task cell over the rows in mask."""
+    rows = data.rows[mask]
+    return pd.Series(np.abs(prediction[mask] - data.y[mask]), index=rows.index).groupby([rows["station"], rows["task"]]).mean()
+
+
+def skill_tests(data: Data, results: list[dict]) -> pd.DataFrame:
+    """Skill against persistence per method, paired by station x task cell, errors averaged over seeds."""
+    persistence = data.rows["tmat_lag_0"].to_numpy()
+    holdout = (data.rows["fold"] == "holdout").to_numpy()
+    scopes = {"final_holdout": lambda r: (r["by_task"][TASK_ORDER[-1]], holdout), "online": lambda r: (r["online"], None)}
+    records = []
+    for method in dict.fromkeys(r["method"] for r in results):
+        if method == "B1_persistence":
+            continue
+        runs = [r for r in results if r["method"] == method]
+        for scope, pick in scopes.items():
+            if scope == "final_holdout" and TASK_ORDER[-1] not in runs[0]["by_task"]:
+                continue
+            if scope == "online" and runs[0]["online"] is None:
+                continue
+            cells = []
+            for run in runs:
+                prediction, base_mask = pick(run)
+                mask = ~np.isnan(prediction) if base_mask is None else base_mask & ~np.isnan(prediction)
+                cells.append(cell_mae(data, prediction, mask))
+            model = pd.concat(cells, axis=1).mean(axis=1)
+            reference = cell_mae(data, persistence, mask).reindex(model.index)
+            skill = 1 - model / reference
+            if (model == reference).all():
+                p_value = 1.0
+            else:
+                p_value = wilcoxon(model, reference).pvalue if len(model) >= 6 else np.nan
+            material = bool(skill.median() >= MATERIAL_SKILL["median_cell_skill_min"] and p_value < MATERIAL_SKILL["wilcoxon_p_max"])
+            records.append({
+                "method": method, "scope": scope, "n_cells": len(model), "median_cell_skill": skill.median(),
+                "mean_cell_skill": skill.mean(), "cells_better_than_persistence": int((skill > 0).sum()),
+                "wilcoxon_p": p_value, "material_skill": material,
+            })
+    return pd.DataFrame(records)
+
+
 def summarize_run(records: pd.DataFrame, persistence: pd.DataFrame) -> dict:
     """Continual-learning metrics on error (protocol 3.4), where lower is better."""
     matrix = records.pivot(index="after_task", columns="eval_task", values="mae").reindex(index=TASK_ORDER, columns=TASK_ORDER)
@@ -325,7 +373,9 @@ def summarize_run(records: pd.DataFrame, persistence: pd.DataFrame) -> dict:
         ahead = matrix.iloc[position - 1, position]
         if not np.isnan(ahead):
             forward.append(ahead - baseline[task])  # negative means better than persistence
+    reference = baseline.reindex(final["eval_task"]).to_numpy()
     return {
+        "final_skill": float(np.mean(1 - final["mae"].to_numpy() / reference)),
         "final_mae": final["mae"].mean(), "final_rmse": final["rmse"].mean(), "final_f1_alert": final["f1_alert"].mean(),
         "forgetting": np.mean(forgetting) if forgetting else np.nan, "backward_transfer": np.mean(backward) if backward else np.nan,
         "forward_vs_persistence": np.mean(forward) if forward else np.nan,
@@ -334,16 +384,23 @@ def summarize_run(records: pd.DataFrame, persistence: pd.DataFrame) -> dict:
 
 
 def online_metrics(data: Data, online: np.ndarray | None) -> dict:
+    """Online MAE per task, and skill against persistence on the same rows."""
     metrics = {}
+    persistence = data.rows["tmat_lag_0"].to_numpy()
     for number, task in enumerate(TASK_ORDER, start=1):
         mask = (data.rows["task"] == task).to_numpy()
-        values = None if online is None else online[mask] - data.y[mask]
-        usable = None if values is None else values[~np.isnan(values)]
-        metrics[f"mae_online_T{number}"] = float(np.abs(usable).mean()) if usable is not None and len(usable) else np.nan
+        if online is not None:
+            mask &= ~np.isnan(online)
+        if online is None or not mask.any():
+            metrics[f"mae_online_T{number}"] = metrics[f"skill_online_T{number}"] = np.nan
+            continue
+        model = float(np.abs(online[mask] - data.y[mask]).mean())
+        metrics[f"mae_online_T{number}"] = model
+        metrics[f"skill_online_T{number}"] = 1 - model / float(np.abs(persistence[mask] - data.y[mask]).mean())
     return metrics
 
 
-def load_data() -> tuple[Data, np.ndarray]:
+def load_data() -> Data:
     missing = [p for p in (FEATURES_CSV, GWT_CLEAN_CSV, CHIRPS_CSV) if not p.exists()]
     if missing:
         raise FileNotFoundError(f"Belum ada: {', '.join(map(str, missing))}. Jalankan langkah 01 dan 02 dulu.")
@@ -352,13 +409,11 @@ def load_data() -> tuple[Data, np.ndarray]:
     gwt = pd.read_csv(GWT_CLEAN_CSV, parse_dates=["date"])
     chirps = pd.read_csv(CHIRPS_CSV, parse_dates=["date"])
     scaler = FrozenScaler.fit(rows, SCALED_COLUMNS)
-    observed = gwt[~gwt["is_imputed"] & ~gwt["is_suspect"]].set_index(["station", "date"])["tmat_m"]
-    tmat_at_t = observed.reindex(pd.MultiIndex.from_frame(rows[["station", "date"]])).to_numpy()
-    return Data(rows, build_sequences(rows, gwt, chirps), scaler), tmat_at_t
+    return Data(rows, build_sequences(rows, gwt, chirps), scaler)
 
 
 def _seed_worker(seed: int, max_epochs: int | None) -> list[dict]:
-    data, _ = load_data()
+    data = load_data()
     return run_lstm_methods(data, seed, max_epochs)
 
 
@@ -368,13 +423,13 @@ def main() -> int:
     parser.add_argument("--max-epochs", type=int, default=None, help="only for smoke runs; results are then not valid")
     args = parser.parse_args()
     try:
-        data, tmat_at_t = load_data()
+        data = load_data()
     except FileNotFoundError as err:
         print(f"GAGAL: {err}", file=sys.stderr)
         return 1
 
     data.scaler.save(NORMALIZATION_JSON)
-    results = run_deterministic_methods(data, tmat_at_t)
+    results = run_deterministic_methods(data)
     with ProcessPoolExecutor(max_workers=min(5, len(args.seeds))) as pool:
         for batch in pool.map(_seed_worker, args.seeds, [args.max_epochs] * len(args.seeds)):
             results.extend(batch)
@@ -384,7 +439,7 @@ def main() -> int:
         return 0
 
     records, summaries, predictions = [], [], []
-    persistence = pd.DataFrame(r_records(data, "B1_persistence", DETERMINISTIC_SEED, {TASK_ORDER[-1]: data.rows["tmat_lag_1"].to_numpy()}))
+    persistence = pd.DataFrame(r_records(data, "B1_persistence", DETERMINISTIC_SEED, {TASK_ORDER[-1]: data.rows["tmat_lag_0"].to_numpy()}))
     for result in results:
         method_records = pd.DataFrame(r_records(data, result["method"], result["seed"], result["by_task"]))
         records.append(method_records)
@@ -393,7 +448,7 @@ def main() -> int:
             **summarize_run(method_records, persistence), **online_metrics(data, result["online"]), "runtime_seconds": result["seconds"],
         }
         summaries.append(metrics)
-        log_experiment(f"baseline_{result['method']}_seed{result['seed']}", CONFIG, result["seed"], {k: v for k, v in metrics.items() if k not in ("method", "seed")}, result["seconds"])
+        log_experiment(f"baseline_cut-t_{result['method']}_seed{result['seed']}", CONFIG, result["seed"], {k: v for k, v in metrics.items() if k not in ("method", "seed")}, result["seconds"])
         if result["online"] is not None:
             predictions.append(pd.DataFrame({"method": result["method"], "seed": result["seed"], "station": data.rows["station"], "date": data.rows["date"], "prediction_m": result["online"]}).dropna())
 
@@ -405,8 +460,9 @@ def main() -> int:
     summary.columns = [f"{name}_{stat}" for name, stat in summary.columns]
     summary.insert(0, "n_seeds", per_run.groupby("method", sort=False)["seed"].nunique())
     summary.reset_index().to_csv(SUMMARY_CSV, index=False, float_format="%.5f")
+    skill_tests(data, results).to_csv(SKILL_CSV, index=False, float_format="%.5f")
     pd.concat(predictions, ignore_index=True).to_csv(PREDICTIONS_CSV, index=False, float_format="%.5f", date_format="%Y-%m-%d")
-    view = per_run.groupby("method", sort=False)[["final_mae", "final_rmse", "forgetting", "mae_T4_holdout", "mae_online_T4", "n_adaptations"]].mean()
+    view = per_run.groupby("method", sort=False)[["final_skill", "final_mae", "skill_online_T4", "mae_online_T4", "n_adaptations"]].mean()
     print(view.round(4).to_string())
     return 0
 

@@ -19,7 +19,7 @@ def module():
 def data(module):
     if not (FEATURES_CSV.exists() and CHIRPS_CSV.exists()):
         pytest.skip("features.csv atau CHIRPS belum ada")
-    return module.load_data()[0]
+    return module.load_data()
 
 
 def test_holdout_is_later_than_train_within_every_task(data):
@@ -59,11 +59,10 @@ def test_online_prediction_comes_from_a_model_older_than_the_forecast(module, da
     assert (pd.DatetimeIndex(dates)[positions] <= pd.DatetimeIndex(data.rows.loc[used, "date"])).all()
 
 
-def test_sequences_end_at_t_minus_1_and_match_lags(data):
-    lag1 = data.scaler.transform(data.rows["tmat_lag_1"], "tmat_lag_1")
-    lag30 = data.scaler.transform(data.rows["tmat_lag_30"], "tmat_lag_1")
-    assert np.allclose(data.sequence[:, -1, 0], lag1, atol=1e-4)
-    assert np.allclose(data.sequence[:, 0, 0], lag30, atol=1e-4)
+def test_sequences_end_at_t_and_match_lags(data):
+    for position, lag in ((-1, 0), (-8, 7), (-22, 21)):
+        expected = data.scaler.transform(data.rows[f"tmat_lag_{lag}"], "tmat_lag_0")
+        assert np.allclose(data.sequence[:, position, 0], expected, atol=1e-4)
 
 
 def test_lstm_is_deterministic_for_a_seed(module, data):
@@ -103,7 +102,16 @@ def test_summary_covers_every_baseline_with_five_lstm_seeds():
 
 
 def test_persistence_is_rebuilt_from_data(module, data):
-    frame = pd.DataFrame(module.r_records(data, "B1", 0, {TASK_ORDER[-1]: data.rows["tmat_lag_1"].to_numpy()}))
+    frame = pd.DataFrame(module.r_records(data, "B1", 0, {TASK_ORDER[-1]: data.rows["tmat_lag_0"].to_numpy()}))
     summary = pd.read_csv(SUMMARY_CSV).set_index("method")
     assert frame["mae"].mean() == pytest.approx(summary.loc["B1_persistence", "final_mae_mean"], abs=1e-4)
-    assert frame["n"].tolist() == [112, 296, 396, 66, 42]
+    assert frame["n"].sum() == (data.rows["fold"] == "holdout").sum()
+
+
+def test_skill_is_zero_for_persistence_against_itself(module, data):
+    persistence = data.rows["tmat_lag_0"].to_numpy()
+    metrics = module.online_metrics(data, persistence)
+    assert all(metrics[f"skill_online_T{n}"] == pytest.approx(0) for n in range(1, 6))
+    result = {"method": "copy", "seed": 0, "by_task": {TASK_ORDER[-1]: persistence}, "online": persistence}
+    table = module.skill_tests(data, [result])
+    assert (table["median_cell_skill"].abs() < 1e-12).all() and not table["material_skill"].any()
