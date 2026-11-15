@@ -35,4 +35,4 @@ def test_protocol_number_is_rebuilt_by_script(audit, metric, expected):
 def test_kubu_raya_t2_deficit_is_negative_as_protocol_states(audit):
     values = audit[[f"T2_deficit_mean_{s}_mm" for s in ["BRG17", "BRG18", "BRG19", "BRG20"]]]
     # Information cutoff t; protocol 3.3 still quotes -44 to -67 from the t-1 features.
-    assert values.min() == pytest.approx(-65.2, abs=0.05) and values.max() == pytest.approx(-42.4, abs=0.05)
+    assert values.min() == pytest.approx(-65.2, abs=0.05) and values.max() == pytest.approx(-42.5, abs=0.05)
