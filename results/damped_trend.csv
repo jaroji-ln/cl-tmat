@@ -1,0 +1,16 @@
+label,note,horizon_days,phi,role,n_rows,n_cells,median_cell_skill,cells_better_than_persistence,wilcoxon_one_sided_p,online_mae,persistence_online_mae,pooled_online_skill,skill_T1,skill_T2,skill_T3,skill_T4,skill_T5,crossing_f1_T3_T5,true_crossings_T3_T5,predicted_crossings_T3_T5,crossing_f1_T4,true_crossings_T4,predicted_crossings_T4
+exploratory_post_hoc,post hoc; conservative direction,3,0.90000,primary,1687,16,-0.18764,5,0.98068,0.05234,0.04501,-0.16308,0.00945,-0.06877,-0.19090,0.07795,-0.20358,0.24000,47,28,,0,0
+exploratory_post_hoc,post hoc; conservative direction,3,0.80000,sensitivity,1687,16,-0.13633,5,0.96304,0.05006,0.04501,-0.11231,0.03490,-0.03412,-0.13594,0.09773,-0.15186,0.21538,47,18,,0,0
+exploratory_post_hoc,post hoc; conservative direction,3,0.95000,sensitivity,1687,16,-0.21880,3,0.99225,0.05382,0.04501,-0.19579,-0.01109,-0.09575,-0.22533,0.05415,-0.23301,0.27848,47,32,,0,0
+exploratory_post_hoc,post hoc; conservative direction,7,0.90000,primary,1667,16,-0.31328,3,0.99916,0.08460,0.06558,-0.29019,-0.08100,-0.16985,-0.35442,0.05326,-0.21656,0.22222,74,52,,0,0
+exploratory_post_hoc,post hoc; conservative direction,7,0.80000,sensitivity,1667,16,-0.16334,3,0.99345,0.07615,0.06558,-0.16126,-0.00638,-0.08442,-0.20702,0.08592,-0.11199,0.21429,74,38,,0,0
+exploratory_post_hoc,post hoc; conservative direction,7,0.95000,sensitivity,1667,16,-0.42068,3,0.99950,0.09107,0.06558,-0.38886,-0.15062,-0.24568,-0.46491,0.01446,-0.29748,0.25352,74,68,,0,0
+exploratory_post_hoc,post hoc; conservative direction,14,0.90000,primary,1642,16,-0.46219,5,0.99686,0.11408,0.08507,-0.34112,-0.24735,-0.18601,-0.45787,0.05372,-0.10860,0.17442,90,82,0.00000,4,0
+exploratory_post_hoc,post hoc; conservative direction,14,0.80000,sensitivity,1642,16,-0.20765,5,0.96304,0.09625,0.08507,-0.13148,-0.09568,-0.05149,-0.19933,0.08658,0.01748,0.13534,90,43,0.00000,4,0
+exploratory_post_hoc,post hoc; conservative direction,14,0.95000,sensitivity,1642,16,-0.69488,2,0.99979,0.13405,0.08507,-0.57585,-0.41953,-0.35604,-0.72801,-0.05113,-0.28499,0.17436,90,105,0.00000,4,0
+exploratory_post_hoc,post hoc; conservative direction,21,0.90000,primary,1620,16,-0.49052,4,0.99742,0.13285,0.09750,-0.36247,-0.29726,-0.20643,-0.51084,0.08428,-0.11949,0.24561,84,87,0.00000,5,0
+exploratory_post_hoc,post hoc; conservative direction,21,0.80000,sensitivity,1620,16,-0.18030,5,0.92807,0.10924,0.09750,-0.12038,-0.12926,-0.06963,-0.18999,0.08939,-0.00661,0.15873,84,42,0.00000,5,0
+exploratory_post_hoc,post hoc; conservative direction,21,0.95000,sensitivity,1620,16,-0.85695,3,0.99950,0.16577,0.09750,-0.70016,-0.53593,-0.42931,-0.93815,0.01560,-0.30955,0.25243,84,122,0.00000,5,0
+exploratory_post_hoc,post hoc; conservative direction,30,0.90000,primary,1600,15,-0.40584,3,0.99786,0.15142,0.11152,-0.35782,-0.30627,-0.17197,-0.52849,0.09120,-0.10511,0.21891,109,92,0.00000,5,0
+exploratory_post_hoc,post hoc; conservative direction,30,0.80000,sensitivity,1600,15,-0.13723,4,0.97232,0.12457,0.11152,-0.11702,-0.10778,-0.05219,-0.18330,0.05082,-0.01194,0.13158,109,43,0.00000,5,0
+exploratory_post_hoc,post hoc; conservative direction,30,0.95000,sensitivity,1600,15,-0.96628,3,0.99957,0.19706,0.11152,-0.76712,-0.66822,-0.41991,-1.09046,0.10872,-0.31516,0.25203,109,137,0.00000,5,0

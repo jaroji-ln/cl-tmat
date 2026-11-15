@@ -1,0 +1,16 @@
+label,horizon_days,method,n_cells,median_mae_difference_vs_b5_m,cells_better_than_b5,wilcoxon_two_sided_p,settings_buffer_rows,settings_ewc_lambda
+secondary_planned_v5,3,CL_finetune30d_lstm,5,-0.01165,3,0.81250,,
+secondary_planned_v5,3,CL_replay30d_lstm,5,0.00865,0,0.06250,512.00000,
+secondary_planned_v5,3,CL_ewc30d_lstm,5,0.00389,1,0.18750,,1.00000
+secondary_planned_v5,7,CL_finetune30d_lstm,5,-0.01068,4,0.31250,,
+secondary_planned_v5,7,CL_replay30d_lstm,5,0.00886,2,0.31250,256.00000,
+secondary_planned_v5,7,CL_ewc30d_lstm,5,0.00509,2,1.00000,,100.00000
+secondary_planned_v5,14,CL_finetune30d_lstm,5,-0.04370,3,0.81250,,
+secondary_planned_v5,14,CL_replay30d_lstm,5,-0.00593,3,1.00000,256.00000,
+secondary_planned_v5,14,CL_ewc30d_lstm,5,-0.04604,3,1.00000,,1.00000
+secondary_planned_v5,21,CL_finetune30d_lstm,5,-0.04207,4,0.62500,,
+secondary_planned_v5,21,CL_replay30d_lstm,5,-0.02053,3,0.81250,512.00000,
+secondary_planned_v5,21,CL_ewc30d_lstm,5,0.00513,2,1.00000,,1.00000
+secondary_planned_v5,30,CL_finetune30d_lstm,4,-0.01437,2,1.00000,,
+secondary_planned_v5,30,CL_replay30d_lstm,4,0.00913,1,0.87500,256.00000,
+secondary_planned_v5,30,CL_ewc30d_lstm,4,-0.04542,3,0.87500,,100.00000

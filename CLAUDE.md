@@ -97,12 +97,19 @@ Tabel drift brief awal **dipensiunkan** (skripnya tidak tersimpan). Jangan dikut
 1. Alpha Ridge terpilih berada di tepi grid: 0,001 untuk h=14 dan h=21, 1000 untuk h=30 (`config/models.yaml`). Grid tidak diperluas karena sudah dikunci.
 2. Di run terkunci, B5 dilatih ulang tanpa baris holdout, meskipun targetnya sudah teramati (diuji di diagnostik D4).
 3. Seleksi hiperparameter LSTM memakai satu seed (seed 0).
+4. D1 **inkonklusif** untuk mekanisme penyusutan menuju persistensi: alpha terpilih 0,001 (h=14/21), sehingga Ridge pada target perubahan setara dengan model level. Jangan tulis D1 sebagai bukti bahwa target perubahan tidak membantu (protokol v6, 2.6).
+5. Status D5: nama metrik pra-spesifikasi (2.4.6), definisi operasional pasca-hoc (`config/diagnostics.yaml`).
+6. Uji per sel T4 hanya punya 4–5 sel stasiun, sehingga p Wilcoxon dua sisi terkecil yang mungkin 0,0625. Uji CL vs B5 di T4 tidak bisa signifikan menurut konstruksinya; laporkan sebagai deskriptif.
 
 ## Diagnostik 2.5 (protokol v5)
 
 Definisi operasional di `config/diagnostics.yaml`, dikunci dengan tag `diagnostics-plan-locked`. Semua keluaran berlabel `exploratory_post_hoc` dan tidak dapat membatalkan keputusan 2.4. Urutan: D1–D5, berhenti dan lapor, baru kemudian Replay + EWC versus B5 (fokus skill online T4).
 
 D1–D5 sudah dijalankan (`src/06_diagnostics.py` → `results/diagnostics_*.csv`, `results/diagnostics_models.yaml`). Tidak ada kandidat yang lolos kriteria 2.4 di diagnostik mana pun. Replay + EWC menunggu laporan ke peneliti. Kejadian melewati ambang (D5) di T4 hanya 0–5 per horizon, terlalu sedikit untuk ditafsirkan.
+
+## Butir penutup 2.6 (protokol v6)
+
+Definisi di `config/closing.yaml`, di-commit sebelum dijalankan. Replay/EWC: `src/07_cl_methods.py` → `results/cl_*.csv`. Tren teredam (`exploratory_post_hoc`, arah konservatif): `src/08_damped_trend.py` → `results/damped_trend*.csv`. Gambar 2–5 dan tabel 2–5: `src/91_final_outputs.py` → `figures/`, `results/tables/`. Tidak ada diagnostik tambahan pada data Taufik. Tag `analysis-frozen` dibuat setelah peneliti meninjau butir 1 dan 2. Sesudah tag itu, kode hanya berubah untuk perbaikan bug yang dicatat terbuka.
 
 ## Masalah terbuka (per 2026-11-04)
 

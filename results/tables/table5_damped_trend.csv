@@ -1,0 +1,16 @@
+horizon_days,phi,role,pooled_online_skill,median_cell_skill,wilcoxon_one_sided_p,skill_T3,skill_T4,skill_T5,crossing_f1_T3_T5,true_crossings_T3_T5,crossing_f1_T4,true_crossings_T4,label
+3,0.9000,primary,-0.1631,-0.1876,0.9807,-0.1909,0.0780,-0.2036,0.2400,47,,0,exploratory_post_hoc
+3,0.8000,sensitivity,-0.1123,-0.1363,0.9630,-0.1359,0.0977,-0.1519,0.2154,47,,0,exploratory_post_hoc
+3,0.9500,sensitivity,-0.1958,-0.2188,0.9922,-0.2253,0.0541,-0.2330,0.2785,47,,0,exploratory_post_hoc
+7,0.9000,primary,-0.2902,-0.3133,0.9992,-0.3544,0.0533,-0.2166,0.2222,74,,0,exploratory_post_hoc
+7,0.8000,sensitivity,-0.1613,-0.1633,0.9935,-0.2070,0.0859,-0.1120,0.2143,74,,0,exploratory_post_hoc
+7,0.9500,sensitivity,-0.3889,-0.4207,0.9995,-0.4649,0.0145,-0.2975,0.2535,74,,0,exploratory_post_hoc
+14,0.9000,primary,-0.3411,-0.4622,0.9969,-0.4579,0.0537,-0.1086,0.1744,90,0.0000,4,exploratory_post_hoc
+14,0.8000,sensitivity,-0.1315,-0.2077,0.9630,-0.1993,0.0866,0.0175,0.1353,90,0.0000,4,exploratory_post_hoc
+14,0.9500,sensitivity,-0.5758,-0.6949,0.9998,-0.7280,-0.0511,-0.2850,0.1744,90,0.0000,4,exploratory_post_hoc
+21,0.9000,primary,-0.3625,-0.4905,0.9974,-0.5108,0.0843,-0.1195,0.2456,84,0.0000,5,exploratory_post_hoc
+21,0.8000,sensitivity,-0.1204,-0.1803,0.9281,-0.1900,0.0894,-0.0066,0.1587,84,0.0000,5,exploratory_post_hoc
+21,0.9500,sensitivity,-0.7002,-0.8569,0.9995,-0.9382,0.0156,-0.3095,0.2524,84,0.0000,5,exploratory_post_hoc
+30,0.9000,primary,-0.3578,-0.4058,0.9979,-0.5285,0.0912,-0.1051,0.2189,109,0.0000,5,exploratory_post_hoc
+30,0.8000,sensitivity,-0.1170,-0.1372,0.9723,-0.1833,0.0508,-0.0119,0.1316,109,0.0000,5,exploratory_post_hoc
+30,0.9500,sensitivity,-0.7671,-0.9663,0.9996,-1.0905,0.1087,-0.3152,0.2520,109,0.0000,5,exploratory_post_hoc

@@ -144,3 +144,31 @@ def test_crossing_f1(diag):
     f1, events, flagged = diag.crossing_f1(now, actual, predicted)
     assert (events, flagged) == (2, 2) and f1 == pytest.approx(0.5)
     assert diag.crossing_f1(now, actual, now)[0] == 0.0  # persistence never predicts a crossing
+
+
+@pytest.fixture(scope="module")
+def cl():
+    return load_script("07_cl_methods.py")
+
+
+def test_reservoir_and_ewc_penalty(cl, hp):
+    if not (FEATURES_CSV.exists() and CHIRPS_CSV.exists()):
+        pytest.skip("features.csv atau CHIRPS belum ada")
+    data = hp.horizon_data(7)
+    learner = cl.Learner(data, "CL_replay30d_lstm", 0, buffer_rows=10)
+    learner._reservoir(np.arange(100))
+    assert len(learner.buffer) == 10 and learner.seen == 100 and set(learner.buffer) <= set(range(100))
+    ewc = cl.Learner(data, "CL_ewc30d_lstm", 0, ewc_lambda=100.0)
+    ewc.model = hp.bl.new_lstm(data, 0)
+    ewc._accumulate_fisher(np.arange(20))
+    assert float(ewc._penalty()(ewc.model)) == 0.0  # zero at the anchor
+    with torch.no_grad():
+        next(ewc.model.parameters()).add_(0.1)
+    assert float(ewc._penalty()(ewc.model)) > 0.0
+
+
+def test_damped_trend_formula():
+    module = load_script("08_damped_trend.py")
+    rows = pd.DataFrame({"tmat_lag_0": [-0.5], "tmat_diff_7": [-0.07]})
+    expected = -0.5 + (-0.01) * sum(0.9**k for k in range(1, 15))
+    assert module.damped_trend(rows, 14, 0.9)[0] == pytest.approx(expected)

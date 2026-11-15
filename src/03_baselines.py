@@ -122,7 +122,7 @@ def validation_mask(rows: pd.DataFrame) -> np.ndarray:
     return (rows["target_date"] >= cut).to_numpy()
 
 
-def fit_lstm(model, data: Data, index: np.ndarray, groups: np.ndarray, seed: int, max_epochs: int | None = None):
+def fit_lstm(model, data: Data, index: np.ndarray, groups: np.ndarray, seed: int, max_epochs: int | None = None, penalty=None):
     """Train on rows in index. Validation is the last 15% of each group, so nothing shuffles across time."""
     settings = data.config["lstm"]
     rows = data.rows.iloc[index]
@@ -143,6 +143,8 @@ def fit_lstm(model, data: Data, index: np.ndarray, groups: np.ndarray, seed: int
             batch = order[start : start + settings["batch"]]
             optimizer.zero_grad()
             loss = torch.nn.functional.mse_loss(model(fit_tensors[0][batch], fit_tensors[1][batch]), fit_tensors[2][batch])
+            if penalty is not None:  # e.g. EWC; validation loss below stays the plain MSE
+                loss = loss + penalty(model)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), settings["grad_clip"])
             optimizer.step()
