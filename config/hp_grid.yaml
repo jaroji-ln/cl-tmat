@@ -1,0 +1,20 @@
+# Protocol 2.2 hyperparameter grid, written before any run; one round per horizon.
+# Equal budget: 32 configurations per model family.
+# Selection data: training folds of T1 and T2 only (holdouts never touched).
+#   fit = T1 training fold + first 70% of the T2 training fold (by target date)
+#   validate = last 30% of the T2 training fold; criterion = validation MAE
+# LSTM selection uses seed 0; the chosen configuration then runs with seeds 0-4.
+status: draft
+lstm:
+  units: [32, 64]
+  layers: [1, 2]
+  dropout: [0.0, 0.2]        # applied to the LSTM output before the head (works for 1 layer too)
+  lr: [0.001, 0.003]
+  sequence_days: [14, 30]
+ridge:
+  alpha: logspace(-3, 3, 32)
+lightgbm:
+  num_leaves: [7, 15, 31, 63]
+  learning_rate: [0.03, 0.1]
+  n_estimators: [200, 500]
+  min_child_samples: [10, 30]

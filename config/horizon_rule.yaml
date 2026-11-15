@@ -1,0 +1,29 @@
+# Operationalization of protocol 2.4. Read by code; locked by tag horizon-rule-locked.
+# status: draft until the researcher confirms the open choices below.
+status: draft
+horizons_days: [3, 7, 14, 21, 30]
+
+realistic_candidates: [B2_static_ridge, B2_static_lightgbm, B5_retrain30d_ridge, B5_retrain30d_lightgbm, B5_retrain30d_lstm]
+oracle_candidates: [B3_joint_ridge, B3_joint_lightgbm, B3_joint_lstm]
+
+# Scope of every skill number in a-c: holdout of each task, scored with the model after the
+# last task (R matrix final row), as in results/baseline_skill.csv scope=final_holdout.
+scope: final_holdout
+
+# "Best realistic model": the candidate with the highest final skill (mean over tasks of
+# 1 - MAE/MAE_persistence). a and b are both judged on that one model.
+best_by: final_skill
+
+criteria:
+  a:  # median per-cell skill > 0 and one-sided paired Wilcoxon (model MAE < persistence MAE)
+    median_cell_skill_gt: 0.0
+    wilcoxon_one_sided_p_lt: 0.05
+    multiplicity: none      # OPEN: none (literal 2.4) or holm across the 5 candidates
+  b:
+    final_skill_ge: 0.05
+  c:  # OPEN: which oracle must beat persistence
+    oracle: same_family_as_best   # B3 of the same model family as the chosen realistic model
+    final_skill_gt: 0.0
+
+primary_horizon: shortest_passing   # no correction across horizons; disclosed in the paper
+secondary_metrics: [f1_alert_minus_0_4_m, skill_per_task]   # never used to choose the horizon
