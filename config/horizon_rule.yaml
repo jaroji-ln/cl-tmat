@@ -1,29 +1,40 @@
-# Operationalization of protocol 2.4. Read by code; locked by tag horizon-rule-locked.
-# status: draft until the researcher confirms the open choices below.
-status: draft
-horizons_days: [3, 7, 14, 21, 30]
+# Operationalization of protocol v4, rule 2.4. Read by src/04_horizon_batch.py.
+# Locked by the annotated tag horizon-rule-locked before any horizon other than the
+# original t+7 baseline was run. Any change after the tag is a new version and is reported.
+status: locked
+horizons_days: [3, 7, 14, 21, 30]   # 2.4.1: fixed; all reported; none added after results
 
-realistic_candidates: [B2_static_ridge, B2_static_lightgbm, B5_retrain30d_ridge, B5_retrain30d_lightgbm, B5_retrain30d_lstm]
-oracle_candidates: [B3_joint_ridge, B3_joint_lightgbm, B3_joint_lstm]
+# 2.4.2: hyperparameter selection per horizon, see config/hp_grid.yaml.
 
-# Scope of every skill number in a-c: holdout of each task, scored with the model after the
-# last task (R matrix final row), as in results/baseline_skill.csv scope=final_holdout.
-scope: final_holdout
+# 2.4.3a: scored data = ONLINE (prequential) forecasts on T3-T5. Each forecast is made by the
+# model available on its issue date. Same out-of-sample rows for every candidate.
+# Final-holdout skill is secondary (reported, never decisive) except for the oracle in c.
+online_tasks: [T3_basah_201819, T4_kemarau_2019, T5_pemulihan_2019]
 
-# "Best realistic model": the candidate with the highest final skill (mean over tasks of
-# 1 - MAE/MAE_persistence). a and b are both judged on that one model.
-best_by: final_skill
-
+# 2.4.3b: every realistic candidate is tested; there is no "pick the best" step. B4 excluded.
+candidates: [B2_static_ridge, B2_static_lightgbm, B5_retrain30d_ridge, B5_retrain30d_lightgbm, B5_retrain30d_lstm]
+cells: station x task, over the online rows of online_tasks   # MAE per cell, averaged over seeds first
 criteria:
-  a:  # median per-cell skill > 0 and one-sided paired Wilcoxon (model MAE < persistence MAE)
-    median_cell_skill_gt: 0.0
-    wilcoxon_one_sided_p_lt: 0.05
-    multiplicity: none      # OPEN: none (literal 2.4) or holm across the 5 candidates
+  a:
+    median_cell_skill_gt: 0.0            # cell skill = 1 - MAE_model / MAE_persistence on the same rows
+    wilcoxon: paired, one-sided (model cell MAE < persistence cell MAE)  # p = 1 if every difference is 0
+    multiplicity: holm over the 5 candidates, within each horizon
+    p_holm_lt: 0.05
   b:
-    final_skill_ge: 0.05
-  c:  # OPEN: which oracle must beat persistence
-    oracle: same_family_as_best   # B3 of the same model family as the chosen realistic model
-    final_skill_gt: 0.0
+    # pooled online skill: 1 - mean |error| of the model / mean |error| of persistence, over all
+    # online rows of online_tasks (model MAE averaged over seeds)
+    pooled_online_skill_ge: 0.05
+  c:
+    oracle: B3 of the same family as the passing candidate   # ridge -> B3_joint_ridge, lightgbm -> B3_joint_lightgbm, lstm -> B3_joint_lstm
+    # holdout skill = final_skill: mean over the five tasks of 1 - MAE/MAE_persistence on each
+    # task's holdout, model after the last task, averaged over seeds; no significance test
+    holdout_skill_gt: 0.0
+horizon_passes: at least one candidate passes a, b and c
 
-primary_horizon: shortest_passing   # no correction across horizons; disclosed in the paper
-secondary_metrics: [f1_alert_minus_0_4_m, skill_per_task]   # never used to choose the horizon
+# 2.4.4 / 2.4.5
+primary_horizon: shortest horizon in horizons_days that passes   # not the one with the largest skill
+if_none_pass: benchmark framing (2.4.5); no further horizon extension
+multiplicity_across_horizons: none (disclosed in the paper)
+
+# 2.4.6: reported for every horizon, never used to choose the primary horizon
+secondary_metrics: [f1_alert_minus_0_4_m, skill_online_per_task, final_holdout_skill]

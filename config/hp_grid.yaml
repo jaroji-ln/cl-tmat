@@ -1,10 +1,12 @@
-# Protocol 2.2 hyperparameter grid, written before any run; one round per horizon.
-# Equal budget: 32 configurations per model family.
-# Selection data: training folds of T1 and T2 only (holdouts never touched).
+# Protocol v4, rules 2.2 and 2.4.2: hyperparameter grid, written before any run; one round per horizon.
+# Equal budget: 32 configurations per model family. Chosen values are written to config/models.yaml.
+# Selection data: training folds of T1 and T2 only; the T2 holdout is never touched.
 #   fit = T1 training fold + first 70% of the T2 training fold (by target date)
-#   validate = last 30% of the T2 training fold; criterion = validation MAE
-# LSTM selection uses seed 0; the chosen configuration then runs with seeds 0-4.
-status: draft
+#   validate = last 30% of the T2 training fold; criterion = validation MAE (ties: first in grid order)
+# LSTM selection uses one seed (seed 0), disclosed as a limitation; the chosen configuration
+# then runs with seeds 0-4. Other LSTM settings (batch, epochs, patience, inner early-stopping
+# split, residual on TMAT t, gradient clipping) stay as in src/03_baselines.py CONFIG.
+status: locked
 lstm:
   units: [32, 64]
   layers: [1, 2]
