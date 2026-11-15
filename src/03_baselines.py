@@ -24,7 +24,7 @@ from scipy.stats import wilcoxon
 from sklearn.linear_model import Ridge
 
 from common import CHIRPS_CSV, FEATURES_CSV, GWT_CLEAN_CSV, ROOT
-from normalization import FrozenScaler
+from normalization import ExpandingScaler, FrozenScaler
 from splits import TASK_ORDER, add_folds, available_for_training
 
 torch.set_num_threads(1)  # deterministic, and avoids an OpenMP clash with LightGBM
@@ -178,8 +178,20 @@ def train_index(data: Data, tasks: list[str]) -> np.ndarray:
     return np.flatnonzero((rows["fold"] == "train").to_numpy() & rows["task"].isin(tasks).to_numpy())
 
 
+def target_base(data: Data) -> np.ndarray:
+    """Zero for a level target (locked); TMAT t when diagnostic D1 asks for a change target."""
+    if data.config.get("target", "level") == "change":
+        return data.rows["tmat_lag_0"].to_numpy()
+    return np.zeros(len(data.rows))
+
+
+def fit_tabular(model, inputs: np.ndarray, data: Data, index: np.ndarray) -> np.ndarray:
+    base = target_base(data)
+    return model.fit(inputs[index], data.y[index] - base[index]).predict(inputs) + base
+
+
 def fit_ridge(data: Data, index: np.ndarray) -> np.ndarray:
-    return Ridge(alpha=data.config["ridge"]["alpha"]).fit(data.tabular[index], data.y[index]).predict(data.tabular)
+    return fit_tabular(Ridge(alpha=data.config["ridge"]["alpha"]), data.tabular, data, index)
 
 
 def fit_ridge_lags(data: Data, index: np.ndarray) -> np.ndarray:
@@ -187,14 +199,14 @@ def fit_ridge_lags(data: Data, index: np.ndarray) -> np.ndarray:
     lags = [SCALED_COLUMNS.index(f"tmat_lag_{lag}") for lag in bf.TMAT_LAGS]
     stations = [len(SCALED_COLUMNS) + RAW_COLUMNS.index(c) for c in bf.STATION_FEATURES]
     inputs = data.tabular[:, lags + stations]
-    return Ridge(alpha=data.config["ridge"]["alpha"]).fit(inputs[index], data.y[index]).predict(inputs)
+    return fit_tabular(Ridge(alpha=data.config["ridge"]["alpha"]), inputs, data, index)
 
 
 def fit_lightgbm(data: Data, index: np.ndarray) -> np.ndarray:
     import lightgbm as lgb  # imported here so LSTM workers never load a second OpenMP runtime
 
     model = lgb.LGBMRegressor(**data.config["lightgbm"], random_state=DETERMINISTIC_SEED, deterministic=True, force_row_wise=True, n_jobs=1, verbose=-1)
-    return model.fit(data.tabular[index], data.y[index]).predict(data.tabular)
+    return fit_tabular(model, data.tabular, data, index)
 
 
 def checkpoints(data: Data) -> list[pd.Timestamp]:
@@ -215,7 +227,10 @@ def scheduled_baseline(data: Data, fit_predict) -> tuple[dict, np.ndarray, int]:
     dates = checkpoints(data)
     snapshots = []
     for as_of in dates:
-        available = available_for_training(data.rows, as_of)
+        if data.config.get("b5_rows", "train_fold") == "all_observed":  # diagnostic D4
+            available = data.rows[data.rows["target_date"] <= as_of]
+        else:
+            available = available_for_training(data.rows, as_of)
         snapshots.append(fit_predict(available.index.to_numpy()))
     online = np.full(len(data.rows), np.nan)
     issued = data.rows["date"]
@@ -417,7 +432,10 @@ def load_data(horizon: int | None = None, config: dict | None = None) -> Data:
         rain, climatology = bf.load_rain_inputs(gwt)
         rows = bf.build_features(gwt, rain, climatology, horizon)
     rows = add_folds(rows).sort_values(["target_date", "station"]).reset_index(drop=True)
-    scaler = FrozenScaler.fit(rows, SCALED_COLUMNS)
+    if (config or CONFIG).get("normalization_mode", "frozen_t1") == "expanding":  # diagnostic D2
+        scaler = ExpandingScaler.fit(rows, SCALED_COLUMNS)
+    else:
+        scaler = FrozenScaler.fit(rows, SCALED_COLUMNS)
     return Data(rows, build_sequences(rows, gwt, chirps), scaler, config)
 
 

@@ -93,3 +93,54 @@ def test_models_yaml_covers_every_horizon_when_present(hp):
     for chosen in models["horizons"].values():
         for family, settings in chosen.items():
             assert {k: v for k, v in settings.items() if k != "validation_mae"} in grid[family]
+
+
+@pytest.fixture(scope="module")
+def diag():
+    return load_script("06_diagnostics.py")
+
+
+def test_expanding_scaler_only_sees_the_past(hp):
+    if not (FEATURES_CSV.exists() and CHIRPS_CSV.exists()):
+        pytest.skip("features.csv atau CHIRPS belum ada")
+    from normalization import ExpandingScaler, FrozenScaler
+
+    rows = hp.horizon_data(7).rows
+    columns = hp.bl.SCALED_COLUMNS
+    scaler = ExpandingScaler.fit(rows, columns)
+    frozen = FrozenScaler.fit(rows, columns)
+    t1_end = rows.loc[(rows["task"] == TASK_ORDER[0]) & (rows["fold"] == "train"), "date"].max()
+    early = (rows["date"] <= t1_end).to_numpy()
+    assert np.allclose(scaler.means["rain_deficit_90d"][early], frozen.means["rain_deficit_90d"])
+    cut = pd.Timestamp("2019-07-01")
+    changed = rows.copy()
+    changed.loc[changed["date"] > cut, columns] += 1000.0
+    other = ExpandingScaler.fit(changed, columns)
+    past = (rows["date"] <= cut).to_numpy()
+    for column in ("tmat_lag_0", "rain_deficit_90d", "dry_spell_days"):
+        assert np.allclose(other.means[column][past], scaler.means[column][past])
+        assert np.allclose(other.stds[column][past], scaler.stds[column][past])
+
+
+def test_change_target_adds_back_tmat_t(hp):
+    if not (FEATURES_CSV.exists() and CHIRPS_CSV.exists()):
+        pytest.skip("features.csv atau CHIRPS belum ada")
+    from sklearn.linear_model import Ridge
+
+    data = hp.horizon_data(7)
+    index = hp.bl.train_index(data, TASK_ORDER[:2])
+    data.config = {**hp.bl.CONFIG, "target": "change"}
+    prediction = hp.bl.fit_ridge(data, index)
+    base = data.rows["tmat_lag_0"].to_numpy()
+    expected = Ridge(alpha=1.0).fit(data.tabular[index], data.y[index] - base[index]).predict(data.tabular) + base
+    data.config = hp.bl.CONFIG
+    np.testing.assert_allclose(prediction, expected)
+
+
+def test_crossing_f1(diag):
+    now = np.array([-0.3, -0.3, -0.5, -0.35])
+    actual = np.array([-0.45, -0.3, -0.6, -0.41])
+    predicted = np.array([-0.42, -0.45, -0.6, -0.3])
+    f1, events, flagged = diag.crossing_f1(now, actual, predicted)
+    assert (events, flagged) == (2, 2) and f1 == pytest.approx(0.5)
+    assert diag.crossing_f1(now, actual, now)[0] == 0.0  # persistence never predicts a crossing

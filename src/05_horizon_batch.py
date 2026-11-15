@@ -107,7 +107,7 @@ def online_f1(data, online: np.ndarray | None, tasks: list[str]) -> float:
     return bl.f1_score(data.y[mask], online[mask])
 
 
-def evaluate_horizon(horizon: int, data, results: list[dict], rule: dict, config: dict) -> tuple[list, list, list, list]:
+def evaluate_horizon(horizon: int, data, results: list[dict], rule: dict, config: dict, prefix: str = "horizon") -> tuple[list, list, list, list]:
     """R records, per-run summaries (logged), criteria rows, and online predictions for one horizon."""
     online_tasks = rule["online_tasks"]
     records, summaries, predictions = [], [], []
@@ -122,7 +122,7 @@ def evaluate_horizon(horizon: int, data, results: list[dict], rule: dict, config
             "runtime_seconds": result["seconds"],
         }
         summaries.append(metrics)
-        bl.log_experiment(f"horizon_h{horizon}_{result['method']}_seed{result['seed']}", config, result["seed"],
+        bl.log_experiment(f"{prefix}_h{horizon}_{result['method']}_seed{result['seed']}", config, result["seed"],
                           {k: v for k, v in metrics.items() if k not in ("method", "seed")}, result["seconds"])
         if result["online"] is not None:
             predictions.append(pd.DataFrame({"horizon_days": horizon, "method": result["method"], "seed": result["seed"], "station": data.rows["station"],
