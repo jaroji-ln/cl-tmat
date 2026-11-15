@@ -1,0 +1,347 @@
+# Written by src/06_diagnostics.py. label: exploratory_post_hoc. D4 = config/models.yaml unchanged.
+label: exploratory_post_hoc
+diagnostics:
+  D4:
+    3:
+      ridge:
+        alpha: 11.601553017399715
+        validation_mae: 0.049453
+      lightgbm:
+        num_leaves: 7
+        learning_rate: 0.03
+        n_estimators: 200
+        min_child_samples: 30
+        validation_mae: 0.065915
+      lstm:
+        units: 32
+        layers: 2
+        dropout: 0.0
+        lr: 0.003
+        sequence_days: 30
+        validation_mae: 0.048533
+    7:
+      ridge:
+        alpha: 11.601553017399715
+        validation_mae: 0.09875
+      lightgbm:
+        num_leaves: 7
+        learning_rate: 0.03
+        n_estimators: 500
+        min_child_samples: 10
+        validation_mae: 0.096847
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.003
+        sequence_days: 30
+        validation_mae: 0.098429
+    14:
+      ridge:
+        alpha: 0.001
+        validation_mae: 0.139496
+      lightgbm:
+        num_leaves: 7
+        learning_rate: 0.1
+        n_estimators: 500
+        min_child_samples: 30
+        validation_mae: 0.177088
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.001
+        sequence_days: 14
+        validation_mae: 0.150274
+    21:
+      ridge:
+        alpha: 0.001
+        validation_mae: 0.174594
+      lightgbm:
+        num_leaves: 7
+        learning_rate: 0.1
+        n_estimators: 500
+        min_child_samples: 30
+        validation_mae: 0.202284
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.0
+        lr: 0.001
+        sequence_days: 14
+        validation_mae: 0.195619
+    30:
+      ridge:
+        alpha: 1000.0
+        validation_mae: 0.318965
+      lightgbm:
+        num_leaves: 7
+        learning_rate: 0.1
+        n_estimators: 500
+        min_child_samples: 30
+        validation_mae: 0.220727
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.001
+        sequence_days: 14
+        validation_mae: 0.304065
+  D1:
+    3:
+      ridge:
+        alpha: 28.288694346259664
+        validation_mae: 0.045858
+      lightgbm:
+        num_leaves: 7
+        learning_rate: 0.03
+        n_estimators: 200
+        min_child_samples: 10
+        validation_mae: 0.052471
+      lstm:
+        units: 32
+        layers: 2
+        dropout: 0.0
+        lr: 0.003
+        sequence_days: 30
+        validation_mae: 0.048533
+    7:
+      ridge:
+        alpha: 107.7105056036769
+        validation_mae: 0.087238
+      lightgbm:
+        num_leaves: 7
+        learning_rate: 0.1
+        n_estimators: 500
+        min_child_samples: 30
+        validation_mae: 0.139564
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.003
+        sequence_days: 30
+        validation_mae: 0.098429
+    14:
+      ridge:
+        alpha: 0.001
+        validation_mae: 0.139495
+      lightgbm:
+        num_leaves: 15
+        learning_rate: 0.1
+        n_estimators: 500
+        min_child_samples: 30
+        validation_mae: 0.092876
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.001
+        sequence_days: 14
+        validation_mae: 0.150274
+    21:
+      ridge:
+        alpha: 0.001
+        validation_mae: 0.174592
+      lightgbm:
+        num_leaves: 63
+        learning_rate: 0.1
+        n_estimators: 200
+        min_child_samples: 10
+        validation_mae: 0.119263
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.0
+        lr: 0.001
+        sequence_days: 14
+        validation_mae: 0.195619
+    30:
+      ridge:
+        alpha: 1000.0
+        validation_mae: 0.344834
+      lightgbm:
+        num_leaves: 15
+        learning_rate: 0.1
+        n_estimators: 200
+        min_child_samples: 30
+        validation_mae: 0.160429
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.001
+        sequence_days: 14
+        validation_mae: 0.304065
+  D2:
+    3:
+      ridge:
+        alpha: 410.1127070551296
+        validation_mae: 0.062368
+      lightgbm:
+        num_leaves: 31
+        learning_rate: 0.03
+        n_estimators: 200
+        min_child_samples: 30
+        validation_mae: 0.054226
+      lstm:
+        units: 64
+        layers: 2
+        dropout: 0.0
+        lr: 0.001
+        sequence_days: 30
+        validation_mae: 0.051137
+    7:
+      ridge:
+        alpha: 410.1127070551296
+        validation_mae: 0.087775
+      lightgbm:
+        num_leaves: 15
+        learning_rate: 0.03
+        n_estimators: 500
+        min_child_samples: 30
+        validation_mae: 0.09197
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.003
+        sequence_days: 14
+        validation_mae: 0.099596
+    14:
+      ridge:
+        alpha: 640.4004271197283
+        validation_mae: 0.148206
+      lightgbm:
+        num_leaves: 7
+        learning_rate: 0.1
+        n_estimators: 200
+        min_child_samples: 30
+        validation_mae: 0.105325
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.001
+        sequence_days: 14
+        validation_mae: 0.166824
+    21:
+      ridge:
+        alpha: 0.001
+        validation_mae: 0.180922
+      lightgbm:
+        num_leaves: 7
+        learning_rate: 0.1
+        n_estimators: 500
+        min_child_samples: 10
+        validation_mae: 0.14714
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.001
+        sequence_days: 30
+        validation_mae: 0.263889
+    30:
+      ridge:
+        alpha: 1000.0
+        validation_mae: 0.246375
+      lightgbm:
+        num_leaves: 63
+        learning_rate: 0.1
+        n_estimators: 200
+        min_child_samples: 10
+        validation_mae: 0.233713
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.001
+        sequence_days: 14
+        validation_mae: 0.290745
+  D3:
+    3:
+      ridge:
+        alpha: 44.17344703140064
+        validation_mae: 0.047763
+      lightgbm:
+        num_leaves: 7
+        learning_rate: 0.1
+        n_estimators: 500
+        min_child_samples: 10
+        validation_mae: 0.053853
+      lstm:
+        units: 64
+        layers: 2
+        dropout: 0.0
+        lr: 0.001
+        sequence_days: 30
+        validation_mae: 0.051137
+    7:
+      ridge:
+        alpha: 107.7105056036769
+        validation_mae: 0.092876
+      lightgbm:
+        num_leaves: 7
+        learning_rate: 0.1
+        n_estimators: 500
+        min_child_samples: 30
+        validation_mae: 0.116226
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.003
+        sequence_days: 14
+        validation_mae: 0.099596
+    14:
+      ridge:
+        alpha: 0.03534981105030106
+        validation_mae: 0.181592
+      lightgbm:
+        num_leaves: 7
+        learning_rate: 0.1
+        n_estimators: 500
+        min_child_samples: 30
+        validation_mae: 0.080212
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.001
+        sequence_days: 14
+        validation_mae: 0.166824
+    21:
+      ridge:
+        alpha: 0.001
+        validation_mae: 0.20136
+      lightgbm:
+        num_leaves: 63
+        learning_rate: 0.03
+        n_estimators: 500
+        min_child_samples: 10
+        validation_mae: 0.110967
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.001
+        sequence_days: 30
+        validation_mae: 0.263889
+    30:
+      ridge:
+        alpha: 0.001
+        validation_mae: 0.328293
+      lightgbm:
+        num_leaves: 15
+        learning_rate: 0.1
+        n_estimators: 200
+        min_child_samples: 30
+        validation_mae: 0.311982
+      lstm:
+        units: 64
+        layers: 1
+        dropout: 0.2
+        lr: 0.001
+        sequence_days: 14
+        validation_mae: 0.290745

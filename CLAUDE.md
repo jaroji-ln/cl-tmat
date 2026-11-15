@@ -102,6 +102,8 @@ Tabel drift brief awal **dipensiunkan** (skripnya tidak tersimpan). Jangan dikut
 
 Definisi operasional di `config/diagnostics.yaml`, dikunci dengan tag `diagnostics-plan-locked`. Semua keluaran berlabel `exploratory_post_hoc` dan tidak dapat membatalkan keputusan 2.4. Urutan: D1–D5, berhenti dan lapor, baru kemudian Replay + EWC versus B5 (fokus skill online T4).
 
+D1–D5 sudah dijalankan (`src/06_diagnostics.py` → `results/diagnostics_*.csv`, `results/diagnostics_models.yaml`). Tidak ada kandidat yang lolos kriteria 2.4 di diagnostik mana pun. Replay + EWC menunggu laporan ke peneliti. Kejadian melewati ambang (D5) di T4 hanya 0–5 per horizon, terlalu sedikit untuk ditafsirkan.
+
 ## Masalah terbuka (per 2026-11-04)
 
 Jangan menganggap ini selesai sebelum peneliti memutuskan.
