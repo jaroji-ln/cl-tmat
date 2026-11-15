@@ -62,9 +62,9 @@ Tabel drift brief awal **dipensiunkan** (skripnya tidak tersimpan). Jangan dikut
 
 ## Konvensi pipeline
 
-- Batas informasi: fitur baris tanggal t hanya memakai data sampai t−1; target adalah TMAT t+7.
+- Batas informasi: t (keputusan peneliti, protokol v3). Fitur baris tanggal t memakai data sampai dan termasuk hari t (lag mulai t, hujan sampai t); target adalah TMAT t+7.
 - Kolom `task` ditentukan oleh **tanggal target**, sehingga target baris latih tidak pernah jatuh ke rezim uji. Pakai `src/splits.py` untuk semua pembagian.
-- Nilai `is_suspect` diperlakukan sebagai NaN. Baris dibuang bila target NaN/imputasi, bila TMAT t−1 hasil imputasi (titik ujung interpolasinya masih di masa depan), atau bila ada fitur NaN.
+- Nilai `is_suspect` diperlakukan sebagai NaN. Baris dibuang bila target NaN/imputasi, bila TMAT t hasil imputasi (titik ujung interpolasinya masih di masa depan), atau bila ada fitur NaN.
 - `features.csv` belum dinormalisasi. Normalisasi (aturan 2) dikerjakan di sesi model dengan statistik T1.
 - `rain_deficit_90d` = normal − jumlah hujan 90 hari (mm); positif berarti lebih kering dari normal.
 - Normal hujan: klimatologi CHIRPS 1988–2017, seluruhnya sebelum periode studi. Hari kering: hujan < 1 mm.
@@ -75,10 +75,10 @@ Tabel drift brief awal **dipensiunkan** (skripnya tidak tersimpan). Jangan dikut
 `src/03_baselines.py` menghasilkan `results/baseline_R.csv`, `results/baseline_summary.csv`, `results/normalization_t1.json`, dan `results/experiments.csv`. Run asap (`--max-epochs`) tidak menulis apa pun. Keluaran identik antar-run.
 
 - Tiap task dibagi sekali: 30% terakhir menurut tanggal target menjadi holdout; pelatihan tidak pernah memakai holdout. Normalisasi dari fold latih T1; kolom musiman dan one-hot tidak diskalakan.
-- LSTM 2 lapis 64 unit, jendela 30 hari, memprediksi perubahan dari t−1. Hiperparameter tetap (`CONFIG`), tanpa penyetelan pada T3–T5.
+- LSTM 2 lapis 64 unit, jendela 30 hari (t−29..t), memprediksi perubahan dari TMAT t. Hiperparameter tetap (`CONFIG`), tanpa penyetelan pada T3–T5.
 - `mae_online_*`: prakiraan seluruh baris task memakai model yang sudah ada saat prakiraan dibuat. Inilah metrik yang mencakup awal kekeringan. Nilai R memakai holdout saja (T4 n=66, T5 n=42).
 - Forgetting dihitung `galat akhir − galat historis terkecil` (positif = memburuk), karena rumus di protokol 3.4 terbalik untuk galat.
-- `B1_persistence` memakai t−1 agar setara informasinya dengan model lain; `B1_persistence_tmat_t` adalah definisi harfiah protokol.
+- `B1_persistence` = TMAT t. Metrik utama: skill = 1 − MAE_model / MAE_persistensi pada baris yang sama. `results/baseline_skill.csv` memasangkan per sel stasiun × task (rerata atas seed). Skill material bila median skill per sel ≥ 5% dan Wilcoxon p < 0,05; kriteria ini dikunci di commit `eafcd72` sebelum hasil keluar.
 - Peringatan impor: LightGBM dan PyTorch berbenang-banyak bisa segfault bila satu proses. LightGBM diimpor saat dipakai, dan PyTorch dibatasi satu benang.
 
 ## Penguncian pemicu (keputusan peneliti, 2026-11-04)
@@ -93,12 +93,11 @@ Tabel drift brief awal **dipensiunkan** (skripnya tidak tersimpan). Jangan dikut
 
 Jangan menganggap ini selesai sebelum peneliti memutuskan.
 
-1. **Galat fotogrametri koordinat (273 m, 240 m, ±250 m) belum punya skrip di repositori**; kena aturan 8 bila dikutip di naskah.
+1. **`src/extract_station_coords.py` tidak berjalan pada `data/external/taufik2022_fig1.png`.** Berkas itu WebP lossy (bukan PNG); ada bintik kompresi yang terbaca sebagai label lintang, dan setelah bintik diabaikan (uji di salinan, bukan di repo) hanya 7 dari 8 marker terdeteksi. Galat 269/244 m belum tereproduksi, jadi belum boleh dikutip (aturan 8). Koordinat yang dipakai CHIRPS tidak berubah.
 2. **Bilinear CHIRPS belum terverifikasi independen.** `00_fetch_chirps.js` sudah dijalankan peneliti dan keluarannya lolos validasi kelengkapan, tetapi perbedaannya dengan nearest-cell belum diuji langsung.
 3. **Defisit 90 hari tertinggal dari kejadian.** Pada baris `features.csv`, porsi defisit > 0 per task: T1 0%, T2 57%, T3 34%, T4 82%, T5 93%. Rerata T5 (195 mm) melebihi T4 (168 mm). Perlu dievaluasi bersama laju penurunan TMAT 14 hari, bukan sendiri.
 4. **Ambang pemicu tidak bisa dikalibrasi dari T1**, karena defisit T1 tidak pernah positif. Ambang juga tidak boleh dipilih dengan melihat T4/T5.
 5. **Statistik T1 membuat T4 jauh di luar rentang:** rerata z defisit T4 +4,4 (maks +7,0); 63% baris T4 punya fitur dengan |z| > 5; |z| terbesar 17,2 (`dry_spell_days`). Aturan 2 tetap berlaku; dampaknya harus ditangani di sesi model.
 6. **Satu kalender rezim untuk dua provinsi kurang pas di Kubu Raya:** Oktober 2018 dan Oktober 2019 berlabel kemarau, tetapi hujannya sekitar 450–490 mm dan 340–390 mm.
-7. **Persistensi mengalahkan semua model terlatih pada T4 online** (`results/baseline_summary.csv`), dan jarak B1 ke B3 LSTM hanya 2,7 mm. Menunggu keputusan peneliti soal pembingkaian dan seleksi hiperparameter berbasis T1–T2.
-8. **Batas informasi t−1 vs t:** protokol B1 memakai TMAT t, fitur berhenti di t−1. Menunggu keputusan peneliti.
-9. **Isi protokol yang berbeda dari kode:** 1.2 menyebut CHIRPS mulai 2018-03-01 (nyata 2018-01-01); 3.4 rumus forgetting; 3.5 Wilcoxon dengan 5 seed tidak bisa mencapai p < 0,05 dua sisi.
+7. **Tidak ada model dengan skill material di t+7** (batas informasi t, `results/baseline_skill.csv`). Terbaik B3 LSTM joint: skill akhir +2,8% (median sel +1,4%, p = 0,67). Pada T4 online semua model negatif (B5 LSTM −39%). Menunggu keputusan bersama peneliti soal pindah horizon utama ke t+14 (protokol 4.6). Seleksi hiperparameter belum dijalankan.
+8. **Protokol v3 perlu diperbarui ke batas t:** 2.3 masih memuat rasio t−1 dan menyatakan semua rasio > 1, padahal BRG20 panel kini 0,99×; 3.3 masih mengutip defisit Kubu Raya T2 −44 s.d. −67 mm (kini −42 s.d. −65).
