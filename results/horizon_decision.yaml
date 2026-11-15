@@ -1,0 +1,6 @@
+# Written by src/05_horizon_batch.py
+rule: protocol v4 2.4, config/horizon_rule.yaml at tag horizon-rule-locked
+horizons_passing: []
+passing_candidates: {}
+primary_horizon_days: null
+outcome: 'no horizon passes: benchmark framing (2.4.5)'
