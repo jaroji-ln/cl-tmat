@@ -3,7 +3,7 @@
 The degradation panel reads the panel Ridge, suspect_excluded rows of
 results/drift_regression.csv.
 
-Output: figures/fig1_tmat_regimes_drift.{pdf,png}
+Output: figures/fig1_tmat_regimes_drift.{pdf,png}, results/degradation_ratios.csv
 """
 import sys
 
@@ -18,6 +18,7 @@ from matplotlib.lines import Line2D
 from common import CHIRPS_CSV, DRIFT_CSV, GWT_CLEAN_CSV, PEATLANDS, REGIMES, ROOT
 
 OUTPUT_STEM = ROOT / "figures" / "fig1_tmat_regimes_drift"
+RATIOS_CSV = ROOT / "results" / "degradation_ratios.csv"
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 DROUGHT_BAND, OTHER_BAND = "#e3e1da", "#f5f4f1"
 COLORS = {
@@ -102,6 +103,15 @@ def plot_drift(ax, drift: pd.DataFrame) -> None:
     )
 
 
+def write_degradation_ratios(drift: pd.DataFrame) -> None:
+    """Panel ratios cited in the paper (protocol 2.3), with per-station ratios for the appendix."""
+    excluded = drift[drift["data"] == "suspect_excluded"]
+    panel = excluded[excluded["mode"] == "panel"].set_index("station")
+    per_station = excluded[excluded["mode"] == "per_station"].set_index("station")
+    table = panel[["n_pre", "n_drought", "mae_pre_m", "mae_drought_m", "ratio"]].join(per_station["ratio"].rename("ratio_per_station_appendix"))
+    table.sort_values("ratio", ascending=False).reset_index().to_csv(RATIOS_CSV, index=False, float_format="%.4f")
+
+
 def main() -> int:
     missing = [p for p in (GWT_CLEAN_CSV, DRIFT_CSV, CHIRPS_CSV) if not p.exists()]
     if missing:
@@ -110,6 +120,7 @@ def main() -> int:
     gwt = pd.read_csv(GWT_CLEAN_CSV, parse_dates=["date"])
     chirps = pd.read_csv(CHIRPS_CSV, parse_dates=["date"])
     drift = pd.read_csv(DRIFT_CSV)
+    write_degradation_ratios(drift)
     plt.rcParams.update({
         "font.family": "DejaVu Sans", "font.size": 8, "axes.spines.top": False, "axes.spines.right": False,
         "axes.edgecolor": MUTED, "axes.labelcolor": MUTED, "xtick.color": MUTED, "ytick.color": MUTED,

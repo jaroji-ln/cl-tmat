@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 from conftest import load_script
@@ -36,3 +37,13 @@ def test_suspect_exclusion_changes_only_brg3(drift):
     assert changed == {"BRG3"}
     brg3 = result[(result["data"] == "suspect_excluded") & (result["station"] == "BRG3")]
     assert (brg3["n_drought"] == 9).all()
+
+
+def test_figure_script_writes_degradation_ratios(drift):
+    from common import ROOT
+    module = load_script("90_figure1.py")
+    module.write_degradation_ratios(drift[1])
+    table = pd.read_csv(ROOT / "results" / "degradation_ratios.csv").set_index("station")
+    for station, expected in PANEL_RATIOS.items():
+        assert table.loc[station, "ratio"] == pytest.approx(expected, abs=0.005)
+    assert table["ratio_per_station_appendix"].notna().all()
