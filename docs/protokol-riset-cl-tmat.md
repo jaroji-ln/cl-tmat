@@ -200,6 +200,7 @@ Ketentuan: kandidat, horizon H, grid hiperparameter, dan prosedur seleksi sama p
 - **H2** — model punya skill positif pada periode pembasahan ulang (didefinisikan objektif dari hujan dan arah perubahan TMAT, tanpa melihat hasil prakiraan), dan negatif pada periode resesi.
 - **H3** — F1 kejadian melewati ambang −0,4 m dari model lebih tinggi daripada baseline tren teredam.
 - **H4** — model perubahan dengan penyusutan tetap menuju persistensi (alpha ditetapkan di muka, bukan diseleksi) tidak lebih buruk dari persistensi.
+- **H5** — peramal terbaik bergantung rezim: tren teredam (φ = 0,9) mengungguli persistensi selama resesi kemarau, model terlatih mengungguli persistensi selama pembasahan ulang. Kombinasi pengalih rezim yang aturannya ditetapkan di muka (tren saat resesi, model saat pembasahan ulang, persistensi selain itu) mengungguli persistensi pada skill gabungan. Hipotesis ini lahir dari butir penutup 2 dan dari skill T5 pada data Taufik, sehingga hanya sah diuji pada data SiTMAT.
 
 Rincian operasionalnya ditulis dalam dokumen praregistrasi terpisah dan dikunci (OSF atau tag repositori) **sebelum** deret SiTMAT dianalisis.
 

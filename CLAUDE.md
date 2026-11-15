@@ -100,6 +100,8 @@ Tabel drift brief awal **dipensiunkan** (skripnya tidak tersimpan). Jangan dikut
 4. D1 **inkonklusif** untuk mekanisme penyusutan menuju persistensi: alpha terpilih 0,001 (h=14/21), sehingga Ridge pada target perubahan setara dengan model level. Jangan tulis D1 sebagai bukti bahwa target perubahan tidak membantu (protokol v6, 2.6).
 5. Status D5: nama metrik pra-spesifikasi (2.4.6), definisi operasional pasca-hoc (`config/diagnostics.yaml`).
 6. Uji per sel T4 hanya punya 4–5 sel stasiun, sehingga p Wilcoxon dua sisi terkecil yang mungkin 0,0625. Uji CL vs B5 di T4 tidak bisa signifikan menurut konstruksinya; laporkan sebagai deskriptif.
+7. Tren teredam (φ = 0,9) adalah satu-satunya peramal dengan skill positif di T4 (`results/damped_trend.csv`). Statusnya deskriptif (4–5 sel) dan pasca-hoc, tetapi φ ditetapkan di muka (`config/closing.yaml`). Pola peramal-terbaik-bergantung-rezim adalah H5 untuk uji SiTMAT (protokol 2.6), bukan klaim artikel 1.
+8. CL vs B5 dilaporkan sebagai rerata ± sd atas 5 seed (`results/tables/table4b_cl_vs_b5_seeds.csv`). Selisih dalam ±1 sd (sd yang lebih besar di antara kedua metode) ditulis "tidak dapat dibedakan", bukan "lebih baik" (keputusan peneliti, 2026-11-16).
 
 ## Diagnostik 2.5 (protokol v5)
 
@@ -109,7 +111,7 @@ D1–D5 sudah dijalankan (`src/06_diagnostics.py` → `results/diagnostics_*.csv
 
 ## Butir penutup 2.6 (protokol v6)
 
-Definisi di `config/closing.yaml`, di-commit sebelum dijalankan. Replay/EWC: `src/07_cl_methods.py` → `results/cl_*.csv`. Tren teredam (`exploratory_post_hoc`, arah konservatif): `src/08_damped_trend.py` → `results/damped_trend*.csv`. Gambar 2–5 dan tabel 2–5: `src/91_final_outputs.py` → `figures/`, `results/tables/`. Tidak ada diagnostik tambahan pada data Taufik. Tag `analysis-frozen` dibuat setelah peneliti meninjau butir 1 dan 2. Sesudah tag itu, kode hanya berubah untuk perbaikan bug yang dicatat terbuka.
+Definisi di `config/closing.yaml`, di-commit sebelum dijalankan. Replay/EWC: `src/07_cl_methods.py` → `results/cl_*.csv`. Tren teredam (`exploratory_post_hoc`, arah konservatif): `src/08_damped_trend.py` → `results/damped_trend*.csv`. Gambar 2–5 dan tabel 2–5: `src/91_final_outputs.py` → `figures/`, `results/tables/`. Tidak ada diagnostik tambahan pada data Taufik. Tag `analysis-frozen` dibuat 2026-11-16 setelah peneliti meninjau butir 1 dan 2. Sesudah tag itu, kode hanya berubah untuk perbaikan bug yang dicatat terbuka.
 
 ## Masalah terbuka (per 2026-11-04)
 

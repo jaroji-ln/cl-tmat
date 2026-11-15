@@ -9,7 +9,10 @@ Figures (figures/*.pdf, *.png):
 Tables (results/tables/*.csv and *.md): table2_criteria_locked, table3_diagnostics, table4_cl_vs_b5,
 table5_damped_trend
 """
+import importlib.util
+import json
 import sys
+from pathlib import Path
 
 import matplotlib
 
@@ -161,6 +164,51 @@ def fig5(crossing, damped):
     save(fig, "fig5_crossing_f1")
 
 
+def task_row_counts(horizon: int) -> pd.Series:
+    """Rows per task at this horizon (the only non-results input, used to pool per-task MAE exactly)."""
+    spec = importlib.util.spec_from_file_location("baselines", Path(__file__).with_name("03_baselines.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.load_data(horizon).rows["task"].value_counts()
+
+
+def cl_seed_table() -> pd.DataFrame:
+    """CL vs B5 per seed from results/experiments.csv: online skill T4 and pooled T3-T5, mean and sd over seeds.
+    Pooled skill per seed = 1 - sum_t n_t MAE_t / sum_t n_t MAE_persistence_t over T3-T5 (exact pooled MAE)."""
+    log = pd.read_csv(RESULTS / "experiments.csv")
+    log = log[log["experiment_id"].str.startswith("closing_cl_h")]
+    metrics = log["metrics"].map(lambda text: json.loads(text.replace("NaN", "null")))
+    records = []
+    for experiment, values in zip(log["experiment_id"], metrics):
+        horizon = int(experiment.split("_")[2][1:])
+        method, seed = experiment.split(f"closing_cl_h{horizon}_")[1].rsplit("_seed", 1)
+        records.append({"horizon_days": horizon, "method": method, "seed": int(seed), **{f"mae_T{k}": values.get(f"mae_online_T{k}") for k in (3, 4, 5)},
+                        "skill_T4": values.get("skill_online_T4")})
+    runs = pd.DataFrame(records)
+    tasks = {3: "T3_basah_201819", 4: "T4_kemarau_2019", 5: "T5_pemulihan_2019"}
+    rows = []
+    for horizon, part in runs.groupby("horizon_days"):
+        counts = task_row_counts(horizon)
+        weights = {k: counts[name] for k, name in tasks.items()}
+        persistence = part[part["method"] == "B1_persistence"].iloc[0]
+        reference = sum(weights[k] * persistence[f"mae_T{k}"] for k in weights)
+        part = part[part["method"].isin(CL)].copy()
+        part["pooled_skill"] = 1 - sum(weights[k] * part[f"mae_T{k}"] for k in weights) / reference
+        rows.append(part)
+    runs = pd.concat(rows)
+    table = runs.groupby(["horizon_days", "method"]).agg(n_seeds=("seed", "nunique"), skill_T4_mean=("skill_T4", "mean"), skill_T4_sd=("skill_T4", "std"),
+                                                         pooled_T3_T5_mean=("pooled_skill", "mean"), pooled_T3_T5_sd=("pooled_skill", "std")).reset_index()
+    b5 = table[table["method"] == "B5_retrain30d_lstm"].set_index("horizon_days")
+    for metric in ("skill_T4", "pooled_T3_T5"):
+        difference = table[f"{metric}_mean"] - table["horizon_days"].map(b5[f"{metric}_mean"])
+        bound = pd.concat([table[f"{metric}_sd"], table["horizon_days"].map(b5[f"{metric}_sd"])], axis=1).max(axis=1)
+        table[f"{metric}_diff_vs_b5"] = difference
+        table[f"{metric}_vs_b5"] = ["reference" if m == "B5_retrain30d_lstm" else ("indistinguishable" if abs(d) <= b else ("better" if d > 0 else "worse"))
+                                     for m, d, b in zip(table["method"], difference, bound)]
+    order = {m: i for i, m in enumerate(CL)}
+    return table.sort_values(["horizon_days", "method"], key=lambda c: c.map(order) if c.name == "method" else c).reset_index(drop=True)
+
+
 def write_table(frame: pd.DataFrame, stem: str, note: str) -> None:
     TABLES.mkdir(parents=True, exist_ok=True)
     frame.to_csv(TABLES / f"{stem}.csv", index=False, float_format="%.4f")
@@ -196,6 +244,10 @@ def main() -> int:
     cl_table = cl_table.merge(cl_criteria[["horizon_days", "candidate", "pooled_online_skill"]].rename(columns={"candidate": "method"}), on=["horizon_days", "method"], how="left")
     cl_table = cl_table.merge(cl_t4.drop(columns=["label"]), on=["horizon_days", "method"], how="left")
     write_table(cl_table.assign(label="secondary_planned_v5"), "table4_cl_vs_b5", "Replay and EWC vs B5 (config/closing.yaml).")
+    seeds = cl_seed_table().assign(label="secondary_planned_v5",
+                                   rule="indistinguishable if |mean difference vs B5| <= the larger of the two sds over 5 seeds")
+    write_table(seeds, "table4b_cl_vs_b5_seeds", "Mean and sd over 5 seeds; distinguishability rule set by the researcher (2026-11-16).")
+    print(seeds.drop(columns=["label", "rule"]).round(3).to_string(index=False))
     damped_columns = ["horizon_days", "phi", "role", "pooled_online_skill", "median_cell_skill", "wilcoxon_one_sided_p", "skill_T3", "skill_T4",
                       "skill_T5", "crossing_f1_T3_T5", "true_crossings_T3_T5", "crossing_f1_T4", "true_crossings_T4"]
     write_table(damped[damped_columns].assign(label="exploratory_post_hoc"), "table5_damped_trend", "Exploratory post hoc; conservative direction.")
