@@ -15,14 +15,14 @@ var SAMPLE_SCALE_M = 100;
 
 // Coordinates must match data/external/brg_station_coordinates.csv (checked by tests/test_coordinates.py).
 var stations = ee.FeatureCollection([
-  ee.Feature(ee.Geometry.Point([103.882, -1.71456]), {station: 'BRG3'}),
-  ee.Feature(ee.Geometry.Point([103.918, -1.72886]), {station: 'BRG4'}),
-  ee.Feature(ee.Geometry.Point([104.026, -1.37978]), {station: 'BRG5'}),
-  ee.Feature(ee.Geometry.Point([103.969, -1.44281]), {station: 'BRG6'}),
-  ee.Feature(ee.Geometry.Point([109.478, -0.19444]), {station: 'BRG17'}),
-  ee.Feature(ee.Geometry.Point([109.519, -0.27979]), {station: 'BRG18'}),
+  ee.Feature(ee.Geometry.Point([103.88234, -1.71456]), {station: 'BRG3'}),
+  ee.Feature(ee.Geometry.Point([103.91815, -1.72886]), {station: 'BRG4'}),
+  ee.Feature(ee.Geometry.Point([104.02631, -1.37978]), {station: 'BRG5'}),
+  ee.Feature(ee.Geometry.Point([103.9693, -1.44281]), {station: 'BRG6'}),
+  ee.Feature(ee.Geometry.Point([109.47836, -0.19444]), {station: 'BRG17'}),
+  ee.Feature(ee.Geometry.Point([109.51923, -0.27979]), {station: 'BRG18'}),
   ee.Feature(ee.Geometry.Point([109.551, -0.29931]), {station: 'BRG19'}),
-  ee.Feature(ee.Geometry.Point([109.412, -0.24028]), {station: 'BRG20'})
+  ee.Feature(ee.Geometry.Point([109.41197, -0.24028]), {station: 'BRG20'})
 ]);
 
 var chirps = ee.ImageCollection('UCSB-CHG/CHIRPS/DAILY').select('precipitation');
