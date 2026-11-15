@@ -72,7 +72,8 @@ CONFIG = {
 class Data:
     """Scaled arrays aligned with rows."""
 
-    def __init__(self, rows: pd.DataFrame, sequences: np.ndarray, scaler: FrozenScaler):
+    def __init__(self, rows: pd.DataFrame, sequences: np.ndarray, scaler: FrozenScaler, config: dict | None = None):
+        self.config = config or CONFIG  # hyperparameters; the horizon batch passes the selected ones
         self.rows = rows.reset_index(drop=True)
         self.y = rows["target_tmat_m"].to_numpy()
         scaled = {c: scaler.transform(rows[c], c) for c in SCALED_COLUMNS}
@@ -100,15 +101,18 @@ def build_sequences(rows: pd.DataFrame, gwt: pd.DataFrame, chirps: pd.DataFrame)
 
 
 class LSTMForecaster(torch.nn.Module):
-    def __init__(self, context_size: int):
+    def __init__(self, context_size: int, settings: dict):
         super().__init__()
-        settings = CONFIG["lstm"]
+        self.sequence_days = settings["sequence_days"]
         self.lstm = torch.nn.LSTM(2, settings["units"], settings["layers"], batch_first=True)
+        # Dropout on the LSTM output before the head; skipped at 0 so the fixed t+7 run is unchanged.
+        self.dropout = torch.nn.Dropout(settings["dropout"]) if settings.get("dropout", 0.0) > 0 else torch.nn.Identity()
         self.head = torch.nn.Linear(settings["units"] + context_size, 1)
 
     def forward(self, sequence, context):
+        sequence = sequence[:, -self.sequence_days :]  # inputs hold t-29..t; shorter windows keep the last days
         encoded, _ = self.lstm(sequence)
-        change = self.head(torch.cat([encoded[:, -1], context], dim=1)).squeeze(1)
+        change = self.head(torch.cat([self.dropout(encoded[:, -1]), context], dim=1)).squeeze(1)
         return sequence[:, -1, 0] + change  # the last observed level, plus a learned change
 
 
@@ -120,7 +124,7 @@ def validation_mask(rows: pd.DataFrame) -> np.ndarray:
 
 def fit_lstm(model, data: Data, index: np.ndarray, groups: np.ndarray, seed: int, max_epochs: int | None = None):
     """Train on rows in index. Validation is the last 15% of each group, so nothing shuffles across time."""
-    settings = CONFIG["lstm"]
+    settings = data.config["lstm"]
     rows = data.rows.iloc[index]
     validation = np.zeros(len(index), dtype=bool)
     for group in np.unique(groups):
@@ -166,7 +170,7 @@ def lstm_predictor(model, data: Data):
 
 def new_lstm(data: Data, seed: int) -> LSTMForecaster:
     torch.manual_seed(seed)
-    return LSTMForecaster(data.context.shape[1])
+    return LSTMForecaster(data.context.shape[1], data.config["lstm"])
 
 
 def train_index(data: Data, tasks: list[str]) -> np.ndarray:
@@ -175,7 +179,7 @@ def train_index(data: Data, tasks: list[str]) -> np.ndarray:
 
 
 def fit_ridge(data: Data, index: np.ndarray) -> np.ndarray:
-    return Ridge(alpha=CONFIG["ridge"]["alpha"]).fit(data.tabular[index], data.y[index]).predict(data.tabular)
+    return Ridge(alpha=data.config["ridge"]["alpha"]).fit(data.tabular[index], data.y[index]).predict(data.tabular)
 
 
 def fit_ridge_lags(data: Data, index: np.ndarray) -> np.ndarray:
@@ -183,13 +187,13 @@ def fit_ridge_lags(data: Data, index: np.ndarray) -> np.ndarray:
     lags = [SCALED_COLUMNS.index(f"tmat_lag_{lag}") for lag in bf.TMAT_LAGS]
     stations = [len(SCALED_COLUMNS) + RAW_COLUMNS.index(c) for c in bf.STATION_FEATURES]
     inputs = data.tabular[:, lags + stations]
-    return Ridge(alpha=CONFIG["ridge"]["alpha"]).fit(inputs[index], data.y[index]).predict(inputs)
+    return Ridge(alpha=data.config["ridge"]["alpha"]).fit(inputs[index], data.y[index]).predict(inputs)
 
 
 def fit_lightgbm(data: Data, index: np.ndarray) -> np.ndarray:
     import lightgbm as lgb  # imported here so LSTM workers never load a second OpenMP runtime
 
-    model = lgb.LGBMRegressor(**CONFIG["lightgbm"], random_state=DETERMINISTIC_SEED, deterministic=True, force_row_wise=True, n_jobs=1, verbose=-1)
+    model = lgb.LGBMRegressor(**data.config["lightgbm"], random_state=DETERMINISTIC_SEED, deterministic=True, force_row_wise=True, n_jobs=1, verbose=-1)
     return model.fit(data.tabular[index], data.y[index]).predict(data.tabular)
 
 
@@ -400,16 +404,21 @@ def online_metrics(data: Data, online: np.ndarray | None) -> dict:
     return metrics
 
 
-def load_data() -> Data:
+def load_data(horizon: int | None = None, config: dict | None = None) -> Data:
+    """Rows from features.csv (t+7), or rebuilt in memory for another horizon by the same builder."""
     missing = [p for p in (FEATURES_CSV, GWT_CLEAN_CSV, CHIRPS_CSV) if not p.exists()]
     if missing:
         raise FileNotFoundError(f"Belum ada: {', '.join(map(str, missing))}. Jalankan langkah 01 dan 02 dulu.")
-    rows = add_folds(pd.read_csv(FEATURES_CSV, parse_dates=["date", "target_date"]))
-    rows = rows.sort_values(["target_date", "station"]).reset_index(drop=True)
     gwt = pd.read_csv(GWT_CLEAN_CSV, parse_dates=["date"])
     chirps = pd.read_csv(CHIRPS_CSV, parse_dates=["date"])
+    if horizon is None:
+        rows = pd.read_csv(FEATURES_CSV, parse_dates=["date", "target_date"])
+    else:
+        rain, climatology = bf.load_rain_inputs(gwt)
+        rows = bf.build_features(gwt, rain, climatology, horizon)
+    rows = add_folds(rows).sort_values(["target_date", "station"]).reset_index(drop=True)
     scaler = FrozenScaler.fit(rows, SCALED_COLUMNS)
-    return Data(rows, build_sequences(rows, gwt, chirps), scaler)
+    return Data(rows, build_sequences(rows, gwt, chirps), scaler, config)
 
 
 def _seed_worker(seed: int, max_epochs: int | None) -> list[dict]:

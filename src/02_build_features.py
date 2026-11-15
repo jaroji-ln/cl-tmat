@@ -1,4 +1,4 @@
-"""Build the 7-day-ahead panel feature table.
+"""Build the 7-day-ahead panel feature table (other horizons via build_features(horizon=h)).
 
 A row dated t is a forecast issued at the end of day t: inputs stop at t, the target is TMAT at t+7.
 `task` follows the target date, so a training target never falls in a test regime.
@@ -37,8 +37,8 @@ PEATLAND_FEATURES = ["peatland_" + p.replace(" ", "_") for p in PEATLANDS]
 FEATURE_COLUMNS = TMAT_FEATURES + RAIN_FEATURES + SEASON_FEATURES + STATION_FEATURES + PEATLAND_FEATURES
 
 
-def tmat_features(group: pd.DataFrame) -> pd.DataFrame:
-    """TMAT inputs and target for one station on a gap-free daily calendar."""
+def tmat_features(group: pd.DataFrame, horizon: int = HORIZON_DAYS) -> pd.DataFrame:
+    """TMAT inputs and target (TMAT at t+horizon) for one station on a gap-free daily calendar."""
     current = group["tmat_m"]
     out = pd.DataFrame(index=group.index)
     for lag in TMAT_LAGS:
@@ -49,15 +49,15 @@ def tmat_features(group: pd.DataFrame) -> pd.DataFrame:
     out["tmat_ma_30"] = current.rolling(30, min_periods=30).mean()
     out["last_input_imputed"] = group["is_imputed"].astype(bool)
     out["n_imputed_inputs"] = group["is_imputed"].astype(int).rolling(max(TMAT_LAGS) + 1, min_periods=1).sum().astype(int)
-    out["target_date"] = group["date"] + pd.Timedelta(days=HORIZON_DAYS)
-    out["target_tmat_m"] = group["tmat_m"].shift(-HORIZON_DAYS)
-    out["target_is_imputed"] = group["is_imputed"].shift(-HORIZON_DAYS, fill_value=False).astype(bool)
+    out["target_date"] = group["date"] + pd.Timedelta(days=horizon)
+    out["target_tmat_m"] = group["tmat_m"].shift(-horizon)
+    out["target_is_imputed"] = group["is_imputed"].shift(-horizon, fill_value=False).astype(bool)
     return out
 
 
-def add_tmat_columns(gwt: pd.DataFrame) -> pd.DataFrame:
+def add_tmat_columns(gwt: pd.DataFrame, horizon: int = HORIZON_DAYS) -> pd.DataFrame:
     usable = gwt.assign(tmat_m=gwt["tmat_m"].mask(gwt["is_suspect"]))
-    parts = [pd.concat([group, tmat_features(group)], axis=1) for _, group in usable.groupby("station", sort=False)]
+    parts = [pd.concat([group, tmat_features(group, horizon)], axis=1) for _, group in usable.groupby("station", sort=False)]
     return pd.concat(parts, ignore_index=True)
 
 
@@ -101,8 +101,8 @@ def static_features(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def build_features(gwt: pd.DataFrame, chirps: pd.DataFrame, climatology: pd.DataFrame) -> pd.DataFrame:
-    df = add_tmat_columns(gwt)
+def build_features(gwt: pd.DataFrame, chirps: pd.DataFrame, climatology: pd.DataFrame, horizon: int = HORIZON_DAYS) -> pd.DataFrame:
+    df = add_tmat_columns(gwt, horizon)
     df = df.merge(rain_features(chirps, climatology), on=["station", "date"], how="left", validate="one_to_one")
     df = filter_rows(static_features(df), FEATURE_COLUMNS)
     df["task"] = regime_of(df["target_date"])
