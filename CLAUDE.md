@@ -83,11 +83,24 @@ Tabel drift brief awal **dipensiunkan** (skripnya tidak tersimpan). Jangan dikut
 
 ## Penguncian pemicu (keputusan peneliti, 2026-11-04)
 
+**DITANGGUHKAN (protokol v5, 3.3, 2026-11-15).** `config/trigger.yaml` tidak dikalibrasi, dan tag `trigger-v1-locked` tidak dibuat. Bagian ini dibuka kembali hanya bila diagnostik 2.5 menghasilkan model yang mengungguli persistensi, dan pemicunya lalu berstatus eksploratif. Butir di bawah adalah arsip.
+
+
 - `config/trigger.yaml` memuat bobot, ambang, dan jendela minimum antar-adaptasi. Nilainya dikalibrasi dari T1–T2 saja. Saat lengkap: `status: frozen`, commit, git tag beranotasi, cantumkan hash di artikel. Baru setelah itu eksperimen T4/T5 boleh dijalankan. Jangan membuat tag selama nilainya masih null.
 - Tag hanya membuktikan konfigurasi terkunci sebelum eksperimen, bukan bahwa data T4/T5 belum pernah dilihat. Statistik deskriptif defisit dan TMAT T4/T5, hasil Ridge, serta hasil baseline T3–T5 (Fase 2) sudah dilihat sebelum penguncian, dan komentar skrip asli peneliti menyebut batas rezim ditentukan dari pola musim pada data. Tulis ini terbuka di artikel.
 - Kalibrasi pada kekeringan sedang (T2), uji pada yang ekstrem (T4): nyatakan sebagai pilihan desain. Keterbatasan yang harus ditulis sendiri: hanya satu episode kekeringan parah.
 - Laporkan seluruh kurva akurasi terhadap jumlah adaptasi, bukan hanya ambang terpilih (sapuan Fase 4.2, transfer lintas-pulau Fase 4.3).
 - Galat prakiraan bergerak 14 hari paling rawan dituduh penyetelan tersembunyi. Ablasi Fase 4.1 harus menunjukkan kontribusi komponen domain di luar umpan balik galat; bila tidak, laporkan sebagai temuan.
+
+## Keterbatasan yang wajib ditulis di naskah (keputusan peneliti, 2026-11-15)
+
+1. Alpha Ridge terpilih berada di tepi grid: 0,001 untuk h=14 dan h=21, 1000 untuk h=30 (`config/models.yaml`). Grid tidak diperluas karena sudah dikunci.
+2. Di run terkunci, B5 dilatih ulang tanpa baris holdout, meskipun targetnya sudah teramati (diuji di diagnostik D4).
+3. Seleksi hiperparameter LSTM memakai satu seed (seed 0).
+
+## Diagnostik 2.5 (protokol v5)
+
+Definisi operasional di `config/diagnostics.yaml`, dikunci dengan tag `diagnostics-plan-locked`. Semua keluaran berlabel `exploratory_post_hoc` dan tidak dapat membatalkan keputusan 2.4. Urutan: D1–D5, berhenti dan lapor, baru kemudian Replay + EWC versus B5 (fokus skill online T4).
 
 ## Masalah terbuka (per 2026-11-04)
 

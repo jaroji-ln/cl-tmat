@@ -1,8 +1,10 @@
 # Protokol Pelaksanaan: Continual Learning untuk Peramalan TMAT Gambut Tropis
 
-Versi 4 · 15 November 2026 · dasar data: Taufik dkk. (2022), *Data in Brief* 41:107903
+Versi 5 · 15 November 2026 · dasar data: Taufik dkk. (2022), *Data in Brief* 41:107903
 
 > **Aturan dokumen (sejak v4):** protokol ini tidak lagi memuat angka hasil yang diturunkan dari kode. Angka semacam itu hanya hidup di `results/` dan dirujuk dengan nama berkas. Ini mencegah protokol dan kode terus berselisih setiap kali pipeline dijalankan ulang.
+>
+> **Perubahan v5:** aturan 2.4 sudah diterapkan → pembingkaian benchmark (2.4.5); rencana diagnostik D1–D5 ditetapkan di 2.5 sebelum dijalankan; pemicu sadar-rezim ditangguhkan; perbandingan CL dipersempit ke Replay + EWC. Kalimat konteks 2.4 diedit secara redaksional (angka diganti rujukan); teks normatif 2.4 tidak berubah dari versi yang di-tag.
 >
 > **Perubahan v4:** aturan keputusan horizon ditetapkan di 2.4 sebelum hasil t+14 terlihat; angka galat koordinat, rasio degradasi, dan defisit Kubu Raya diganti rujukan ke berkas hasil.
 
@@ -133,7 +135,7 @@ Yang dilaporkan apa adanya, berapa pun angkanya: degradasi saat kemarau **hetero
 
 ### 2.4 Aturan keputusan horizon — ditetapkan 15 November 2026, sebelum hasil t+14 dijalankan
 
-Konteks: pada t+7 tidak ada model realistis yang skill-nya terbukti di atas persistensi (oracle LSTM joint +2,6%, p per sel 0,84). Aturan di bawah dikunci sebelum horizon lain dilihat, supaya pemilihan horizon tidak bisa dituduh mencari-cari hasil. Commit dan tag (`horizon-rule-locked`) sebelum eksperimen horizon dijalankan.
+Konteks: pada t+7 tidak ada model realistis yang skill-nya terbukti di atas persistensi (`results/baseline_*.csv`). Aturan di bawah dikunci sebelum horizon lain dilihat, supaya pemilihan horizon tidak bisa dituduh mencari-cari hasil. Commit dan tag (`horizon-rule-locked`) sebelum eksperimen horizon dijalankan.
 
 1. **Himpunan horizon dikunci sekarang: H = {3, 7, 14, 21, 30} hari.** Semuanya dijalankan dalam satu batch dengan pipeline yang sama, dan seluruhnya dilaporkan apa pun hasilnya. Tidak ada horizon yang ditambahkan setelah hasil terlihat.
 2. **Seleksi hiperparameter per horizon** memakai prosedur 2.2: hanya fold latih T1–T2 (latih pada T1 + 70% awal fold latih T2, validasi pada 30% akhirnya; holdout T2 tidak disentuh). Grid 32 konfigurasi per keluarga model, ditulis di `config/hp_grid.yaml` sebelum dijalankan. LSTM diseleksi dengan satu seed (seed 0) — diungkap sebagai keterbatasan.
@@ -146,6 +148,34 @@ Konteks: pada t+7 tidak ada model realistis yang skill-nya terbukti di atas pers
 5. **Bila tidak ada horizon yang memenuhi kriteria: tidak ada perpanjangan lagi.** Artikel dibingkai ulang sebagai studi benchmark: *persistensi sebagai baseline yang sulit dikalahkan untuk TMAT gambut, dan kapan pembelajaran adaptif sepadan*. Kontribusinya: kurva skill terhadap horizon, kegagalan retrain online selama kemarau T4, temuan kualitas data BRG3, dan protokol evaluasi. Pemicu sadar-rezim turun menjadi analisis sekunder. Setiap ide metode baru yang muncul setelah melihat hasil (misalnya gerbang yang kembali ke persistensi saat kemarau terdeteksi) wajib diberi label eksploratif pasca-hoc.
 6. **Metrik kejadian** (F1 deteksi TMAT < −0,4 m, termasuk kejadian melewati ambang) dilaporkan untuk semua horizon sebagai metrik sekunder. Metrik ini **tidak boleh** dipakai untuk mengubah pilihan horizon utama.
 
+### 2.5 Status keputusan dan diagnostik — ditetapkan 15 November 2026, sebelum dijalankan
+
+**Keputusan 2.4 (final, tidak dibuka ulang):** tidak ada horizon dalam H yang memenuhi kriteria (`results/horizon_decision.yaml`). Artikel dibingkai sebagai benchmark sesuai 2.4.5.
+
+**Mengapa diagnostik tetap wajib.** Klaim "persistensi sulit dikalahkan" baru kuat bila kegagalan model bukan artefak desain pipeline. Ada tiga dugaan artefak yang akan langsung diajukan reviewer:
+
+1. Model memprediksi **level** TMAT, padahal pada horizon pendek hampir seluruh informasinya ada di level hari ini. Model yang memprediksi **perubahan** dari hari ini, dengan regularisasi menuju nol, tidak bisa jauh lebih buruk dari persistensi.
+2. Normalisasi dibekukan dari T1. Selama kemarau T4, fitur mencapai |z| hingga 17, sehingga model linear berekstrapolasi liar. Normalisasi berjendela-mengembang yang hanya memakai data masa lalu tetap bebas kebocoran.
+3. B5 hanya dilatih ulang dengan baris fold latih, padahal target holdout yang sudah teramati sebelum tanggal prakiraan sah dipakai.
+
+**Diagnostik yang dijalankan (seluruhnya berlabel eksploratif pasca-hoc, dan TIDAK dapat membatalkan keputusan 2.4):**
+
+| Kode | Perubahan tunggal terhadap pipeline terkunci | Menjawab |
+|---|---|---|
+| D1 | Target = TMAT(t+h) − TMAT(t); prakiraan = TMAT(t) + prediksi | Dugaan 1 |
+| D2 | Normalisasi berjendela-mengembang, hanya data ≤ t | Dugaan 2 |
+| D3 | D1 + D2 bersamaan | Interaksi |
+| D4 | B5 dilatih ulang dengan semua baris yang targetnya sudah teramati sebelum tanggal prakiraan | Dugaan 3 |
+| D5 | F1 kejadian **melewati** ambang −0,4 m (transisi dari atas ke bawah ambang dalam jendela h), bukan status di bawah ambang | Metrik T4 yang tidak informatif |
+
+Ketentuan: kandidat, horizon H, grid hiperparameter, dan prosedur seleksi sama persis dengan versi terkunci. Hasil dilaporkan memakai tabel kriteria 2.4 yang sama, untuk semua kandidat dan horizon, apa pun hasilnya. Berkas `results/diagnostics_*.csv`.
+
+**Cara membaca hasilnya di naskah:**
+- Bila D1–D4 tetap kalah dari persistensi → klaim benchmark diperkuat: kegagalan bukan artefak parametrisasi, normalisasi, atau perlakuan B5.
+- Bila salah satu mengalahkan persistensi → itu temuan eksploratif tentang **bagaimana** model harus dibangun untuk TMAT gambut, bukan pembatalan keputusan. Diuji konfirmatif pada data independen (lihat di bawah).
+
+**Data konfirmatif.** Hipotesis yang lahir dari diagnostik ini (misalnya target berbentuk perubahan, atau skill pada rezim pembasahan ulang T5) diuji pada deret SiTMAT Riau yang dikumpulkan secara prospektif — data yang belum pernah dilihat saat hipotesis dirumuskan.
+
 ## FASE 3 — Metode continual learning
 
 ### 3.1 Protokol
@@ -156,7 +186,13 @@ Domain-incremental: T1 → T2 → T3 → T4 → T5. Setelah setiap task, evaluas
 
 Minimal empat: Experience Replay, EWC, FSNet, dan satu lagi (latent replay, LwF, atau OneNet).
 
-### 3.3 Kontribusi utama — pemicu sadar-rezim
+### 3.3 Pemicu sadar-rezim — DITANGGUHKAN (v5)
+
+Setelah 2.4.5, pemicu tidak lagi menjadi kontribusi utama. Memutuskan *kapan* beradaptasi tidak bermakna selama tidak ada model adaptif yang mengalahkan persistensi. Kalibrasi dan tag `trigger-v1-locked` tidak dijalankan. Bagian ini dibuka kembali hanya bila diagnostik 2.5 menghasilkan model yang mengungguli persistensi; jika itu terjadi, pemicu berstatus eksploratif.
+
+Perbandingan CL dipersempit ke **Experience Replay dan EWC** terhadap B5, dengan pertanyaan tunggal: apakah CL mengurangi keruntuhan skill pada T4 dibanding retrain berkala? Rancangan asli di bawah dipertahankan sebagai arsip.
+
+#### Rancangan asli (arsip)
 
 ```
 sinyal_pemicu = w1 · z(defisit_hujan_90hari)

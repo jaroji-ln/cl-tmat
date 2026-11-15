@@ -1,0 +1,48 @@
+# Operationalization of protocol v5, section 2.5 (diagnostics D1-D5). Read by src/06_diagnostics.py.
+# Locked by the annotated tag diagnostics-plan-locked before any diagnostic code was written.
+# EVERY output is labelled exploratory_post_hoc. None of it can overturn the 2.4 decision
+# (results/horizon_decision.yaml: benchmark framing).
+status: locked
+label: exploratory_post_hoc
+
+# Fixed exactly as at tag horizon-rule-locked: candidates, H, grid, selection procedure,
+# criteria a-c (config/horizon_rule.yaml), splits, seeds 0-4, cutoff t.
+same_as_locked: [config/horizon_rule.yaml, config/hp_grid.yaml]
+
+# Hyperparameters: each diagnostic that changes what the models see (D1, D2, D3) reruns the
+# locked selection procedure (src/04_hp_selection.py logic, same grid, same T1-T2 split, LSTM
+# seed 0) under that diagnostic's pipeline. D4 changes no selection input (selection never
+# involves B5 retraining), so it uses config/models.yaml unchanged.
+diagnostics:
+  D1:
+    change: target = TMAT(t+h) - TMAT(t); forecast = TMAT(t) + prediction
+    applies_to: Ridge and LightGBM (B2, B3, B5). The LSTM already outputs TMAT(t) plus a learned
+      change (residual_on tmat_lag_0), so it is identical to the locked LSTM; it is rerun unchanged
+      and this is reported, not altered to make D1 bite.
+    note: Ridge then shrinks the change toward its (unpenalized) mean, not toward the level.
+  D2:
+    change: expanding-window normalization using only data dated <= t
+    definition: for a row issued on date t, mean and population sd (ddof 0) of each scaled column
+      over all feature rows (all stations, same horizon) with issue date <= max(t, T1_end), where
+      T1_end = last issue date in the T1 training fold. Rows issued before T1_end therefore get the
+      locked T1 statistics (rule 2), and later rows get statistics that only grow with the past.
+      Only input features are used for statistics; no target enters them.
+    applies_to: every scaled column, including the LSTM input windows and its target scale
+      (row-specific statistics, inverted with the same row's statistics).
+  D3:
+    change: D1 and D2 together
+  D4:
+    change: B5 retrains on every row whose target date is <= the checkpoint date, holdout rows included
+    applies_to: B5 only (B2, B3 identical to locked)
+    caveat: B5 final-holdout numbers (R matrix) are then not out-of-sample and are reported as
+      invalid; criterion c uses B3, which D4 does not change.
+  D5:
+    change: metric only, on predictions of the locked batch and of D1-D4
+    definition: crossing event at row t = TMAT(t) >= -0.4 m and TMAT(t+h) < -0.4 m;
+      predicted crossing = TMAT(t) >= -0.4 m and forecast < -0.4 m. F1 over online rows of
+      T3-T5 and of T4 separately, with the number of true events. Persistence never predicts a
+      crossing by construction (F1 = 0 when events exist).
+
+outputs: [results/diagnostics_criteria.csv, results/diagnostics_summary.csv,
+          results/diagnostics_hp_selection.csv, results/diagnostics_models.yaml,
+          results/diagnostics_crossing_f1.csv]
