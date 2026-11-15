@@ -30,7 +30,7 @@ Basis kode artikel riset untuk jurnal Q1/Q2 (Ecological Informatics, Environment
   BRG5 punya 85 NaN di berkas mentah plus 1 tanggal hilang (2019-03-22), sehingga 86 setelah reindex.
 - Tanggal ganda: BRG5 2019-03-21 (−0,362 dan −0,316); digabung dengan rerata.
 - Berkas ini tidak memuat hujan; hujan dari CHIRPS.
-- Koordinat: `data/external/brg_station_coordinates.csv`. Hanya BRG6 dan BRG18 yang terpublikasi; enam lainnya estimasi fotogrametrik (±250 m). BRG19 berjarak ~66 m dari batas sel bujur dan ~166 m dari batas sel lintang CHIRPS, jadi wajib interpolasi bilinear, bukan nearest-cell.
+- Koordinat: `data/external/brg_station_coordinates.csv`, dibangun oleh `src/extract_station_coords.py` dari `data/external/taufik2022_fig1.jpg` (resolusi tinggi, 2917×2046; CC BY 4.0). Hanya BRG6 dan BRG18 yang terpublikasi; enam lainnya estimasi fotogrametrik. Galat validasi 214,3 m (BRG6) dan 208,1 m (BRG18), di `results/coord_validation.csv`, diukur sebelum koreksi bias bujur yang dihitung dari dua stasiun yang sama; enam stasiun lain tidak tervalidasi independen. BRG19 berjarak sekitar 111 m dari batas sel bujur dan 77 m dari batas sel lintang CHIRPS, jadi wajib interpolasi bilinear. Koordinat di `src/00_fetch_chirps.js` wajib sama dengan berkas CSV (`tests/test_coordinates.py`).
 
 ## Rezim hidrologi (task continual learning)
 
@@ -93,11 +93,11 @@ Tabel drift brief awal **dipensiunkan** (skripnya tidak tersimpan). Jangan dikut
 
 Jangan menganggap ini selesai sebelum peneliti memutuskan.
 
-1. **`src/extract_station_coords.py` tidak berjalan pada `data/external/taufik2022_fig1.png`.** Berkas itu WebP lossy (bukan PNG); ada bintik kompresi yang terbaca sebagai label lintang, dan setelah bintik diabaikan (uji di salinan, bukan di repo) hanya 7 dari 8 marker terdeteksi. Galat 269/244 m belum tereproduksi, jadi belum boleh dikutip (aturan 8). Koordinat yang dipakai CHIRPS tidak berubah.
+1. **CHIRPS harus diekstraksi ulang dengan koordinat baru (2026-11-15).** Koordinat estimasi bergeser 7–321 m (BRG5 321 m, melebihi ±250 m yang dulu dinyatakan); semua tetap di sel CHIRPS yang sama, tetapi nilai bilinear ikut berubah. Sampai peneliti menjalankan ulang `00_fetch_chirps.js`, `chirps_*.csv`, `features.csv`, dan semua hasil masih memakai koordinat lama. Setelah itu bangun ulang 02 → 03, 80, 81, 90.
 2. **Bilinear CHIRPS belum terverifikasi independen.** `00_fetch_chirps.js` sudah dijalankan peneliti dan keluarannya lolos validasi kelengkapan, tetapi perbedaannya dengan nearest-cell belum diuji langsung.
 3. **Defisit 90 hari tertinggal dari kejadian.** Pada baris `features.csv`, porsi defisit > 0 per task: T1 0%, T2 57%, T3 34%, T4 82%, T5 93%. Rerata T5 (195 mm) melebihi T4 (168 mm). Perlu dievaluasi bersama laju penurunan TMAT 14 hari, bukan sendiri.
 4. **Ambang pemicu tidak bisa dikalibrasi dari T1**, karena defisit T1 tidak pernah positif. Ambang juga tidak boleh dipilih dengan melihat T4/T5.
 5. **Statistik T1 membuat T4 jauh di luar rentang:** rerata z defisit T4 +4,4 (maks +7,0); 63% baris T4 punya fitur dengan |z| > 5; |z| terbesar 17,2 (`dry_spell_days`). Aturan 2 tetap berlaku; dampaknya harus ditangani di sesi model.
 6. **Satu kalender rezim untuk dua provinsi kurang pas di Kubu Raya:** Oktober 2018 dan Oktober 2019 berlabel kemarau, tetapi hujannya sekitar 450–490 mm dan 340–390 mm.
 7. **Tidak ada model dengan skill material di t+7** (batas informasi t, `results/baseline_skill.csv`). Terbaik B3 LSTM joint: skill akhir +2,8% (median sel +1,4%, p = 0,67). Pada T4 online semua model negatif (B5 LSTM −39%). Menunggu keputusan bersama peneliti soal pindah horizon utama ke t+14 (protokol 4.6). Seleksi hiperparameter belum dijalankan.
-8. **Protokol v3 perlu diperbarui ke batas t:** 2.3 masih memuat rasio t−1 dan menyatakan semua rasio > 1, padahal BRG20 panel kini 0,99×; 3.3 masih mengutip defisit Kubu Raya T2 −44 s.d. −67 mm (kini −42 s.d. −65).
+8. **Protokol v3 perlu diperbarui:** 0.3 masih mengutip galat 269/244 m dan ±250 m (kini 214/208 m dari skrip; BRG5 bergeser 321 m); 2.3 masih memuat rasio t−1 dan menyatakan semua rasio > 1, padahal BRG20 panel kini 0,99×; 3.3 masih mengutip defisit Kubu Raya T2 −44 s.d. −67 mm (kini −42 s.d. −65).

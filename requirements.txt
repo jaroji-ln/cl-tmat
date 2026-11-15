@@ -8,5 +8,6 @@ seaborn
 torch
 statsmodels
 openpyxl
+pillow
 pyyaml
 pytest
