@@ -1,0 +1,100 @@
+# Written by src/04_hp_selection.py. Do not edit by hand.
+status: locked
+selected_by: src/04_hp_selection.py
+grid: config/hp_grid.yaml
+selection_data: fit T1 train fold + first 70% of T2 train fold; validate last 30%
+  of T2 train fold
+lstm_selection_seed: 0
+fixed_lstm_settings:
+  residual_on: tmat_lag_0
+  batch: 64
+  max_epochs: 60
+  patience: 8
+  validation: last 15% by target date
+  grad_clip: 1.0
+horizons:
+  3:
+    ridge:
+      alpha: 11.601553017399715
+      validation_mae: 0.049453
+    lightgbm:
+      num_leaves: 7
+      learning_rate: 0.03
+      n_estimators: 200
+      min_child_samples: 30
+      validation_mae: 0.065915
+    lstm:
+      units: 32
+      layers: 2
+      dropout: 0.0
+      lr: 0.003
+      sequence_days: 30
+      validation_mae: 0.048533
+  7:
+    ridge:
+      alpha: 11.601553017399715
+      validation_mae: 0.09875
+    lightgbm:
+      num_leaves: 7
+      learning_rate: 0.03
+      n_estimators: 500
+      min_child_samples: 10
+      validation_mae: 0.096847
+    lstm:
+      units: 64
+      layers: 1
+      dropout: 0.2
+      lr: 0.003
+      sequence_days: 30
+      validation_mae: 0.098429
+  14:
+    ridge:
+      alpha: 0.001
+      validation_mae: 0.139496
+    lightgbm:
+      num_leaves: 7
+      learning_rate: 0.1
+      n_estimators: 500
+      min_child_samples: 30
+      validation_mae: 0.177088
+    lstm:
+      units: 64
+      layers: 1
+      dropout: 0.2
+      lr: 0.001
+      sequence_days: 14
+      validation_mae: 0.150274
+  21:
+    ridge:
+      alpha: 0.001
+      validation_mae: 0.174594
+    lightgbm:
+      num_leaves: 7
+      learning_rate: 0.1
+      n_estimators: 500
+      min_child_samples: 30
+      validation_mae: 0.202284
+    lstm:
+      units: 64
+      layers: 1
+      dropout: 0.0
+      lr: 0.001
+      sequence_days: 14
+      validation_mae: 0.195619
+  30:
+    ridge:
+      alpha: 1000.0
+      validation_mae: 0.318965
+    lightgbm:
+      num_leaves: 7
+      learning_rate: 0.1
+      n_estimators: 500
+      min_child_samples: 30
+      validation_mae: 0.220727
+    lstm:
+      units: 64
+      layers: 1
+      dropout: 0.2
+      lr: 0.001
+      sequence_days: 14
+      validation_mae: 0.304065
