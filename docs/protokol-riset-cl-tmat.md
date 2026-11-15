@@ -1,8 +1,10 @@
 # Protokol Pelaksanaan: Continual Learning untuk Peramalan TMAT Gambut Tropis
 
-Versi 5 · 15 November 2026 · dasar data: Taufik dkk. (2022), *Data in Brief* 41:107903
+Versi 6 · 16 November 2026 · dasar data: Taufik dkk. (2022), *Data in Brief* 41:107903
 
 > **Aturan dokumen (sejak v4):** protokol ini tidak lagi memuat angka hasil yang diturunkan dari kode. Angka semacam itu hanya hidup di `results/` dan dirujuk dengan nama berkas. Ini mencegah protokol dan kode terus berselisih setiap kali pipeline dijalankan ulang.
+>
+> **Perubahan v6:** hasil D1–D5 dicatat (`results/diagnostics_*.csv`); analisis pada data Taufik dibekukan setelah tiga butir penutup di 2.6; hipotesis eksploratif dipindahkan ke uji konfirmatif SiTMAT; strategi dua artikel.
 >
 > **Perubahan v5:** aturan 2.4 sudah diterapkan → pembingkaian benchmark (2.4.5); rencana diagnostik D1–D5 ditetapkan di 2.5 sebelum dijalankan; pemicu sadar-rezim ditangguhkan; perbandingan CL dipersempit ke Replay + EWC. Kalimat konteks 2.4 diedit secara redaksional (angka diganti rujukan); teks normatif 2.4 tidak berubah dari versi yang di-tag.
 >
@@ -175,6 +177,35 @@ Ketentuan: kandidat, horizon H, grid hiperparameter, dan prosedur seleksi sama p
 - Bila salah satu mengalahkan persistensi → itu temuan eksploratif tentang **bagaimana** model harus dibangun untuk TMAT gambut, bukan pembatalan keputusan. Diuji konfirmatif pada data independen (lihat di bawah).
 
 **Data konfirmatif.** Hipotesis yang lahir dari diagnostik ini (misalnya target berbentuk perubahan, atau skill pada rezim pembasahan ulang T5) diuji pada deret SiTMAT Riau yang dikumpulkan secara prospektif — data yang belum pernah dilihat saat hipotesis dirumuskan.
+
+### 2.6 Penutupan analisis data Taufik — ditetapkan 16 November 2026
+
+**Status D1–D5:** tidak ada diagnostik yang menghasilkan skill online gabungan T3–T5 yang positif, dan kriteria 2.4 gagal di semua sel. Klaim benchmark tidak bergantung pada parametrisasi target, skema normalisasi, maupun perlakuan baris holdout B5.
+
+**Catatan jujur tentang D1.** D1 dimaksudkan menguji model perubahan yang diregularisasi menuju persistensi. Seleksi hiperparameter terkunci memilih alpha 0,001 di h = 14/21, sehingga regularisasi itu tidak pernah terjadi. Karena TMAT(t) sudah menjadi fitur, Ridge tanpa regularisasi pada target perubahan setara dengan model level. Jadi D1 **tidak menguji** mekanisme penyusutan menuju persistensi. Naskah harus menyatakan D1 inkonklusif untuk mekanisme itu, bukan sebagai bukti bahwa target perubahan tidak membantu.
+
+**Pembekuan.** Tidak ada diagnostik tambahan pada data Taufik. Setiap iterasi lanjutan pada data yang sama memperbesar peluang menemukan pola karena kebetulan. Hipotesis yang tersisa dipindahkan ke uji konfirmatif. Setelah tiga butir di bawah selesai, buat tag `analysis-frozen`. Sesudah tag itu, kode hanya boleh berubah untuk perbaikan bug yang dilaporkan terbuka.
+
+**Tiga butir penutup:**
+
+1. **Replay dan EWC terhadap B5** (3.3) — satu pertanyaan: apakah CL mengurangi keruntuhan skill di T4.
+2. **Baseline naif kedua: ekstrapolasi tren teredam** (tren 7 hari, diredam menuju nol), untuk MAE dan F1 kejadian. Persistensi menurut definisinya mendapat F1 = 0 pada kejadian melewati ambang, sehingga pembanding itu terlalu lemah untuk metrik kejadian. Baseline ini ditambahkan pasca-hoc, tetapi arahnya konservatif: ia mempersulit klaim, bukan mempermudah.
+3. **Gambar dan tabel final** dari berkas `results/` yang ada.
+
+**Status metrik kejadian (D5).** Metrik ini sudah disebut di 2.4.6 sebelum hasil horizon terlihat, tetapi definisi operasionalnya (TMAT(t) ≥ −0,4 dan TMAT(t+h) < −0,4) baru ditetapkan di `config/diagnostics.yaml`. Statusnya: metrik sekunder yang namanya pra-spesifikasi, tetapi definisinya pasca-hoc. Laporkan apa adanya.
+
+**Hipotesis untuk uji konfirmatif SiTMAT (dirumuskan sekarang, diuji pada data yang belum terlihat):**
+
+- **H1** — model adaptif tidak mengalahkan persistensi pada skill MAE gabungan.
+- **H2** — model punya skill positif pada periode pembasahan ulang (didefinisikan objektif dari hujan dan arah perubahan TMAT, tanpa melihat hasil prakiraan), dan negatif pada periode resesi.
+- **H3** — F1 kejadian melewati ambang −0,4 m dari model lebih tinggi daripada baseline tren teredam.
+- **H4** — model perubahan dengan penyusutan tetap menuju persistensi (alpha ditetapkan di muka, bukan diseleksi) tidak lebih buruk dari persistensi.
+
+Rincian operasionalnya ditulis dalam dokumen praregistrasi terpisah dan dikunci (OSF atau tag repositori) **sebelum** deret SiTMAT dianalisis.
+
+**Strategi dua artikel.**
+- **Artikel 1 (sekarang):** benchmark pada data Taufik — persistensi sebagai baseline yang sulit dikalahkan, kegagalan adaptasi online selama kemarau El Niño, diagnostik D1–D5, kesenjangan antara MAE dan metrik kejadian, temuan kualitas data BRG3, dan protokol evaluasi yang dikunci bertahap.
+- **Artikel 2 (setelah ≥ 6 bulan data SiTMAT):** uji konfirmatif H1–H4 pada ratusan stasiun Riau.
 
 ## FASE 3 — Metode continual learning
 

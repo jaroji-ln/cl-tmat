@@ -1,0 +1,37 @@
+# Protocol v6, section 2.6: operational definitions of closing items 1 and 2.
+# Written and committed before either was run. Nothing here is chosen by looking at T3-T5.
+status: locked
+
+cl_methods:   # item 1: Replay and EWC against B5, focus online skill on T4, all H
+  label: secondary_planned_v5   # comparison named in protocol v5 3.3, designed after the 2.4 decision
+  horizons_days: [3, 7, 14, 21, 30]
+  backbone: LSTM with the locked per-horizon configuration (config/models.yaml), seeds 0-4
+  schedule: same checkpoints as B5 (first fit at the end of the T1 training fold, then every 30 days)
+  rows: same rule as locked B5 (training-fold rows whose target date <= checkpoint)
+  update: warm-start the current model on the rows that became available since the last update;
+    an update waits until at least 16 new rows exist (they carry over); same optimizer, epochs,
+    early stopping, and clipping as the locked LSTM (inner validation = last 15% of the update rows)
+  methods:
+    CL_finetune30d_lstm: control, warm-start update on new rows only (isolates the CL mechanism)
+    CL_replay30d_lstm: new rows + an equal number sampled from a reservoir buffer of past rows
+      (sampling and reservoir seeded by the run seed)
+    CL_ewc30d_lstm: new rows, loss + (lambda/2) * sum F (theta - theta_star)^2; online EWC - after
+      each update, F += empirical diagonal Fisher (per-row squared gradients of the scaled MSE,
+      on up to 512 of the update rows) and theta_star = current parameters
+  selection:   # same split as the locked HP selection; seed 0; criterion validation MAE
+    data: initial fit on the T1 training fold, then 30-day updates through the first 70% of the
+      T2 training fold, validate on the last 30% of the T2 training fold
+    replay_buffer_rows: [128, 256, 512, 1024]
+    ewc_lambda: [1, 10, 100, 1000]
+  report: skill online per task (T4 first), pooled online skill T3-T5, criteria table 2.4 as
+    reference, and per-cell T4 MAE of each CL method against B5 LSTM (two-sided paired Wilcoxon,
+    station cells, errors averaged over seeds)
+
+damped_trend:   # item 2: second naive baseline
+  label: exploratory_post_hoc
+  note: added post hoc; direction conservative (a stronger reference makes claims harder)
+  forecast: TMAT(t) + slope * sum_{k=1..h} phi^k, slope = (TMAT(t) - TMAT(t-7)) / 7  (tmat_diff_7 / 7)
+  phi_primary: 0.9          # per day, fixed in advance, not selected
+  phi_sensitivity: [0.8, 0.95]   # all reported
+  metrics: MAE skill against persistence (per task, pooled online T3-T5, rows of the locked batch)
+    and crossing F1 with the D5 definition (T3-T5 and T4), compared with the locked candidates
