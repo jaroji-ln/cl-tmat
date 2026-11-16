@@ -25,15 +25,26 @@ Status: Sections 2 and 3 drafted; others outlined.
 
 ## 1. Introduction
 
-[TODO — outline]
+Drained tropical peatlands in Indonesia burn when their water table falls. The 1997 fires released carbon equivalent to 13–40% of the mean annual global emissions from fossil fuels (Page et al., 2002), the 2015 fires were the largest since then (Huijnen et al., 2016), and drainage that does not lead to fire still causes continuous subsidence and carbon loss through oxidation (Hooijer et al., 2012). The groundwater table (GWT) is the variable that links these processes. Fire danger rises steeply as the water table drops, and field studies place the critical depths for tropical peat between about −0.3 and −0.85 m (Taufik et al., 2015; Hayasaka et al., 2020; Irfan et al., 2024). Indonesian regulation sets the limit at 0.4 m below the peat surface (Government Regulation No. 57/2016), and both restoration and fire prevention are evaluated against it (Putra et al., 2021; Ismail et al., 2021). A forecast that warns, a week or more ahead, that the water table is about to cross that limit would therefore be useful to the agencies that manage rewetting infrastructure and fire response.
 
-1. Why the groundwater table (GWT) in drained tropical peat matters: fire risk, subsidence, carbon loss; the −0.4 m threshold in Indonesian regulation (PP 57/2016).
-2. Data-driven GWT forecasting is growing, but reported skill is usually measured as error, not against a naive persistence forecast, and evaluation often uses random or in-regime splits.
-3. Hydrological regimes shift (dry season, El Niño drought, re-wetting), so a model trained in one regime may fail in the next. Continual learning (CL) and periodic retraining are the usual answers.
-4. Gap: no study tests, under a time-ordered and pre-specified protocol, whether adaptive models beat persistence for tropical peat GWT, and when.
-5. This study: a panel benchmark on eight stations in Jambi and West Kalimantan (2018–2019), with decision rules locked in version control before each stage of analysis. Contributions: (i) skill-versus-horizon curves against persistence; (ii) the behaviour of online retraining and CL through the 2019 El Niño drought; (iii) diagnostics that rule out three pipeline artefacts; (iv) the gap between error-based and event-based skill; (v) a data-quality finding at one station; (vi) the staged locking protocol itself.
+Data-driven GWT forecasting has grown quickly. A recent systematic review counted 223 machine-learning studies of groundwater level prediction, most using neural networks, support vector machines, LSTM networks, or tree ensembles (Gilbert et al., 2025), and comparisons of network architectures are now common (Wunsch et al., 2021). In tropical peatlands the literature is younger but follows the same pattern: neural networks and gradient-boosted trees have been trained on monitoring-station data from Indonesia and Malaysia (Li et al., 2024; Yonekura et al., 2025; Utomo et al., 2026). These studies report accuracy as RMSE, MAE, or R². <!-- VERIFY: persistence baseline in Li 2024, Yonekura 2025, Utomo 2026 --> Such scores say little about a slow-moving series, because a forecast that simply repeats today's level can already achieve a low error. In hydrological forecasting more broadly, the case for judging a forecast against simple benchmarks such as persistence has long been made (Pappenberger et al., 2015), and where such benchmarks are reported, naive forecasts can be hard to beat for groundwater (Jibhakate and Katpatal, 2024).
 
-Literature to cover [TODO: search]: GWT forecasting in peatlands (ML and process models); persistence and naive baselines in hydrological forecasting; CL for time series and environmental streams; pre-registration and analytic flexibility in environmental modelling.
+Evaluation design matters as much as the benchmark. Random splits of a time series let information from the future leak into training, a problem that has inflated reported performance in many fields that use machine learning (Kapoor and Narayanan, 2023). Even with time-ordered splits, a test period drawn from the same hydrological regime as the training period does not show how a model behaves when conditions change. Klemeš (1986) proposed the differential split-sample test for this reason: a model intended for changed conditions should be tested on a period whose climate differs from that of its calibration. For tropical peat the relevant change is not a slow trend but a sequence of regimes, including wet seasons, ordinary dry seasons, El Niño droughts, and re-wetting, each with its own relation between rainfall and water-table response.
+
+A model trained in one regime may therefore fail in the next, and the machine-learning answer to this problem is adaptation. Periodic retraining is the simplest option. Continual learning (CL) offers methods designed to learn from a stream of changing tasks without forgetting earlier ones, among them experience replay and elastic weight consolidation (Kirkpatrick et al., 2017; Chaudhry et al., 2019; De Lange et al., 2022), and the broader literature on concept drift offers many ways to detect and respond to changes in the data-generating process (Gama et al., 2014). Whether any of these methods helps a GWT forecast through a drought has, to our knowledge, not been tested. The question has a practical edge: the forecast matters most at drought onset, when a model can only have learned from regimes that came before.
+
+A further difficulty is analytic flexibility. A study that compares several models, horizons, and adaptation schemes on a short record has many ways to find an apparent winner, and the choices made after seeing results are rarely visible to readers. Pre-registration addresses this by fixing the analysis before the data are examined (Nosek et al., 2018). Full pre-registration is seldom possible with an existing public dataset, but the decisions that matter most can still be fixed before their results are known, and the record of when each was fixed can be made public.
+
+This study asks whether adaptive models keep tropical peat GWT forecasts accurate through a hydrological regime shift. We use the public record of eight BRG monitoring stations in Jambi and West Kalimantan from April 2018 to December 2019, which includes the 2019 El Niño drought (Taufik et al., 2022). We frame the question as a benchmark against persistence, evaluate every forecast online and in time order across five hydrological regimes, and fix each stage of the analysis with an annotated git tag before running it. The study makes six contributions:
+
+1. skill against persistence, as a function of forecast horizon from 3 to 30 days, for static, periodically retrained, and continual-learning panel models;
+2. an account of how online retraining and CL behave through the onset and course of the 2019 El Niño drought;
+3. four diagnostics that test whether the result is an artefact of the pipeline (target definition, normalisation, and training data);
+4. a comparison of error-based skill with skill at forecasting crossings of the −0.4 m threshold, against both persistence and a damped-trend reference;
+5. a data-quality finding at one station that would otherwise distort any evaluation of the drought period; and
+6. the staged locking protocol itself, together with the code and logs that reproduce every number in the paper.
+
+The result is negative: no model beat persistence under the locked decision rule. We report it as such, and we state the patterns it suggests as hypotheses for an independent confirmatory study rather than as findings.
 
 ---
 
@@ -201,11 +212,11 @@ On MAE, the damped trend lost to persistence overall (pooled skill −16% to −
 
 ### 5.1 Why persistence is hard to beat
 
-The central result is negative. Under a rule fixed before the horizons were run, no adaptive or static model beat persistence over the evaluation period. This is less surprising than it may look. The water table in tropical peat moves slowly: storage is large, drainage is limited by low hydraulic conductivity in the deeper catotelm, and day-to-day changes are small compared with the seasonal range [cite: peat hydrology, e.g. Ingram 1983; Holden 2005]. Under those conditions the level at *t* already explains most of the level at *t* + *h*, and a model must predict the remaining change better than "no change" to earn positive skill. That change is driven largely by rainfall in the days after the forecast is issued, which no input available at *t* contains. Our models did not use rainfall forecasts, and in the absence of such inputs, the information ceiling may sit close to persistence.
+The central result is negative. Under a rule fixed before the horizons were run, no adaptive or static model beat persistence over the evaluation period. This is less surprising than it may look. The water table in tropical peat moves slowly: dry-season drawdown proceeds at millimetres to a few centimetres per day (Wösten et al., 2008; Putra et al., 2021; Ismail et al., 2021), so day-to-day changes are small compared with the seasonal range. Under those conditions the level at *t* already explains most of the level at *t* + *h*, and a model must predict the remaining change better than "no change" to earn positive skill. That change is driven largely by rainfall in the days after the forecast is issued, which no input available at *t* contains. Our models did not use rainfall forecasts, and in the absence of such inputs, the information ceiling may sit close to persistence.
 
 The margins of the oracle make the same point. B3, trained on every regime including those it was later scored on, reached only +3% to +8% holdout skill at h = 7–21 (Section 4.2). If a model that has seen the drought gains so little, the gap between persistence and a realistic model is narrow from the outset, and the regime shift only has to cost a few percentage points to erase it.
 
-A practical consequence follows. Studies of GWT forecasting in peatlands commonly report MAE, RMSE, or R² without a persistence reference [cite: ML GWT studies in peatlands]. On slow-moving series these scores can look good for a model that adds nothing beyond the current level. We suggest that skill against persistence, on identical rows and with online evaluation across regimes, should be the minimum standard for such studies.
+A practical consequence follows. Studies of GWT forecasting in peatlands report MAE, RMSE, or R² as their headline scores (e.g. Li et al., 2024; Yonekura et al., 2025; see also Gilbert et al., 2025). <!-- VERIFY before submission: whether these papers include a persistence baseline --> On slow-moving series these scores can look good for a model that adds nothing beyond the current level. We suggest that skill against persistence, on identical rows and with online evaluation across regimes, should be the minimum standard for such studies.
 
 ### 5.2 Retraining cannot anticipate a new regime
 
@@ -219,7 +230,7 @@ The one exception, fine-tuning at h = 21, illustrates the trade-off rather than 
 
 MAE skill and crossing F1 gave different rankings. On MAE, persistence beat every trained model; on crossings of −0.4 m, persistence scores zero by construction, and the trained models outperformed the damped trend in 19 of 25 cells (Section 4.6). Neither metric is wrong. MAE rewards small errors on ordinary days, which persistence delivers; the crossing metric rewards anticipating the rare day when the level falls below the regulatory limit, which persistence cannot do at all.
 
-The choice of metric therefore depends on the use. For peat fire early warning, the operational question is whether the water table will fall below −0.4 m, not how close the forecast is on a day when it stays well above or well below that level [cite: GWT and fire risk, e.g. Taufik et al.; Putra et al.]. We stress two caveats, however. The event results carry no uncertainty estimate, and the operational definition of a crossing was fixed after the horizon results were known (Section 3.6). They indicate where an operational evaluation should look, not a finding we can defend on its own.
+The choice of metric therefore depends on the use. For peat fire early warning, the operational question is whether the water table will fall below −0.4 m, not how close the forecast is on a day when it stays well above or well below that level (Taufik et al., 2015, 2019; Irfan et al., 2024). We stress two caveats, however. The event results carry no uncertainty estimate, and the operational definition of a crossing was fixed after the horizon results were known (Section 3.6). They indicate where an operational evaluation should look, not a finding we can defend on its own.
 
 ### 5.4 The best forecaster may depend on the regime
 
@@ -260,15 +271,38 @@ The staged locking protocol made the negative result possible to report. Each st
 
 ## References
 
-[TODO: verify every entry before submission.]
+<!-- DOIs checked against Crossref on 2026-11-16, except entries marked [no DOI]. Verify page ranges and formatting to EMS style before submission. -->
 
-- Chaudhry, A., et al. (2019). On tiny episodic memories in continual learning. arXiv:1902.10486.
-- Dawid, A.P. (1984). Statistical theory: the prequential approach. Journal of the Royal Statistical Society A, 147, 278–292.
-- Funk, C., et al. (2015). The climate hazards infrared precipitation with stations — a new environmental record for monitoring extremes. Scientific Data, 2, 150066.
-- Gardner, E.S., McKenzie, E. (1985). Forecasting trends in time series. Management Science, 31, 1237–1246.
+- Chaudhry, A., Rohrbach, M., Elhoseiny, M., Ajanthan, T., Dokania, P.K., Torr, P.H.S., Ranzato, M. (2019). On tiny episodic memories in continual learning. arXiv:1902.10486. [no DOI]
+- Dawid, A.P. (1984). Statistical theory: the prequential approach. Journal of the Royal Statistical Society A, 147, 278–292. <!-- DOI to check -->
+- De Lange, M., Aljundi, R., Masana, M., Parisot, S., Jia, X., Leonardis, A., Slabaugh, G., Tuytelaars, T. (2022). A continual learning survey: defying forgetting in classification tasks. IEEE Transactions on Pattern Analysis and Machine Intelligence, 44, 3366–3385. https://doi.org/10.1109/TPAMI.2021.3057446
+- Funk, C., et al. (2015). The climate hazards infrared precipitation with stations — a new environmental record for monitoring extremes. Scientific Data, 2, 150066. <!-- DOI to check -->
+- Gama, J., Žliobaitė, I., Bifet, A., Pechenizkiy, M., Bouchachia, A. (2014). A survey on concept drift adaptation. ACM Computing Surveys, 46(4), 1–37. https://doi.org/10.1145/2523813
+- Gardner, E.S., McKenzie, E. (1985). Forecasting trends in time series. Management Science, 31, 1237–1246. <!-- DOI to check -->
+- Gilbert, J., Boateng, C.D., Aryee, J.N.A., et al. (2025). A systematic review of machine learning models for groundwater level prediction. Applied Computing and Geosciences, 100303. https://doi.org/10.1016/j.acags.2025.100303
+- Government of Indonesia (2016). Government Regulation No. 57/2016 amending Government Regulation No. 71/2014 on the protection and management of peat ecosystems. <!-- verify article number of the 0.4 m criterion -->
+- Hayasaka, H., Usup, A., Naito, D. (2020). New approach evaluating peatland fires in Indonesian factors. Remote Sensing, 12, 2055. https://doi.org/10.3390/rs12122055
 - Hochreiter, S., Schmidhuber, J. (1997). Long short-term memory. Neural Computation, 9, 1735–1780.
 - Holm, S. (1979). A simple sequentially rejective multiple test procedure. Scandinavian Journal of Statistics, 6, 65–70.
-- Ke, G., et al. (2017). LightGBM: a highly efficient gradient boosting decision tree. Advances in Neural Information Processing Systems 30.
-- Kirkpatrick, J., et al. (2017). Overcoming catastrophic forgetting in neural networks. PNAS, 114, 3521–3526.
-- Taufik, M., et al. (2022). [TODO: exact title]. Data in Brief, 41, 107903.
+- Hooijer, A., Page, S., Jauhiainen, J., Lee, W.A., Lu, X.X., Idris, A., Anshari, G. (2012). Subsidence and carbon loss in drained tropical peatlands. Biogeosciences, 9, 1053–1071. https://doi.org/10.5194/bg-9-1053-2012
+- Huijnen, V., Wooster, M.J., Kaiser, J.W., et al. (2016). Fire carbon emissions over maritime southeast Asia in 2015 largest since 1997. Scientific Reports, 6, 26886. https://doi.org/10.1038/srep26886
+- Irfan, M., Koriyanti, E., Saleh, K., et al. (2024). Dynamics of peatland fires in South Sumatra in 2019: role of groundwater levels. Land, 13, 373. https://doi.org/10.3390/land13030373
+- Ismail, I., Haghighi, A.T., Marttila, H., et al. (2021). Water table variations on different land use units in a drained tropical peatland island of Indonesia. Hydrology Research, 52, 1372–1388. https://doi.org/10.2166/nh.2021.062 <!-- check end page -->
+- Jibhakate, T.M., Katpatal, Y.B. (2024). Prediction of rainfall and groundwater using machine learning algorithms for Nagpur Division. MAUSAM, 75(3). https://doi.org/10.54302/mausam.v75i3.6272
+- Kapoor, S., Narayanan, A. (2023). Leakage and the reproducibility crisis in machine-learning-based science. Patterns, 4, 100804. https://doi.org/10.1016/j.patter.2023.100804
+- Ke, G., et al. (2017). LightGBM: a highly efficient gradient boosting decision tree. Advances in Neural Information Processing Systems 30. [no DOI]
+- Kirkpatrick, J., et al. (2017). Overcoming catastrophic forgetting in neural networks. PNAS, 114, 3521–3526. <!-- DOI to check -->
+- Klemeš, V. (1986). Operational testing of hydrological simulation models. Hydrological Sciences Journal, 31, 13–24. https://doi.org/10.1080/02626668609491024
+- Li, L., Sali, A.B., Liew, J.T., et al. (2024). Machine learning for peatland ground water level (GWL) prediction via IoT system. IEEE Access, 12. https://doi.org/10.1109/ACCESS.2024.3419237
+- Nosek, B.A., Ebersole, C.R., DeHaven, A.C., Mellor, D.T. (2018). The preregistration revolution. PNAS, 115, 2600–2606. https://doi.org/10.1073/pnas.1708274114
+- Page, S.E., Siegert, F., Rieley, J.O., Boehm, H.-D.V., Jaya, A., Limin, S. (2002). The amount of carbon released from peat and forest fires in Indonesia during 1997. Nature, 420, 61–65. https://doi.org/10.1038/nature01131
+- Pappenberger, F., Ramos, M.H., Cloke, H.L., Wetterhall, F., Alfieri, L., Bogner, K., Mueller, A., Salamon, P. (2015). How do I know if my forecasts are better? Using benchmarks in hydrological ensemble prediction. Journal of Hydrology, 522, 697–713. https://doi.org/10.1016/j.jhydrol.2015.01.024
+- Putra, S.S., Holden, J., Baird, A.J. (2021). The effects of ditch dams on water-level dynamics in tropical peatlands. Hydrological Processes, 35, e14174. https://doi.org/10.1002/hyp.14174
+- Taufik, M., Setiawan, B.I., Van Lanen, H.A.J. (2015). Modification of a fire drought index for tropical wetland ecosystems by including water table depth. Agricultural and Forest Meteorology, 203, 1–10. https://doi.org/10.1016/j.agrformet.2014.12.006 <!-- check volume/pages -->
+- Taufik, M., Veldhuizen, A.A., Wösten, J.H.M., Van Lanen, H.A.J. (2019). Exploration of the importance of physical properties of Indonesian peatlands to assess critical groundwater table depths, associated drought and fire hazard. Geoderma, 347, 160–169. https://doi.org/10.1016/j.geoderma.2019.04.001 <!-- check authors/volume/pages -->
+- Taufik, M., TW, M., Awaluddin, Mukharomah, A.K., Minasny, B. (2022). Groundwater table and soil-hydrological properties datasets of Indonesian peatlands. Data in Brief, 41, 107903. https://doi.org/10.1016/j.dib.2022.107903
+- Utomo, W.Y., Aini, F.K., Askary, M., et al. (2026). Machine learning-aided groundwater level and CO2 emission estimations in Indonesian tropical peatland. Environmental Advances, 100762. https://doi.org/10.1016/j.envadv.2026.100762
 - Wilcoxon, F. (1945). Individual comparisons by ranking methods. Biometrics Bulletin, 1, 80–83.
+- Wösten, J.H.M., Clymans, E., Page, S.E., Rieley, J.O., Limin, S.H. (2008). Peat–water interrelationships in a tropical peatland ecosystem in Southeast Asia. Catena, 73, 212–224. https://doi.org/10.1016/j.catena.2007.07.010
+- Wunsch, A., Liesch, T., Broda, S. (2021). Groundwater level forecasting with artificial neural networks: a comparison of long short-term memory (LSTM), convolutional neural networks (CNNs), and non-linear autoregressive networks with exogenous input (NARX). Hydrology and Earth System Sciences, 25, 1671–1687. https://doi.org/10.5194/hess-25-1671-2021
+- Yonekura, K., Miyazaki, S., Aichi, M., et al. (2025). Prediction of groundwater level in Indonesian tropical peatland forest plantations using machine learning. Artificial Intelligence in Geosciences, 100148. https://doi.org/10.1016/j.aiig.2025.100148
