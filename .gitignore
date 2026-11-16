@@ -10,3 +10,6 @@ __pycache__/
 .ipynb_checkpoints/
 .venv/
 .DS_Store
+
+# Built by docs/manuscript/build_docx.py
+docs/manuscript/manuscript.docx
