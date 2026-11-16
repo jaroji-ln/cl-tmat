@@ -25,7 +25,7 @@ Status: Sections 2 and 3 drafted; others outlined.
 
 ## 1. Introduction
 
-Drained tropical peatlands in Indonesia burn when their water table falls. The 1997 fires released carbon equivalent to 13–40% of the mean annual global emissions from fossil fuels (Page et al., 2002), the 2015 fires were the largest since then (Huijnen et al., 2016), and drainage that does not lead to fire still causes continuous subsidence and carbon loss through oxidation (Hooijer et al., 2012). The groundwater table (GWT) is the variable that links these processes. Fire danger rises steeply as the water table drops, and field studies place the critical depths for tropical peat between about −0.3 and −0.85 m (Taufik et al., 2015; Hayasaka et al., 2020; Irfan et al., 2024). Indonesian regulation sets the limit at 0.4 m below the peat surface (Government Regulation No. 57/2016), and both restoration and fire prevention are evaluated against it (Putra et al., 2021; Ismail et al., 2021). A forecast that warns, a week or more ahead, that the water table is about to cross that limit would therefore be useful to the agencies that manage rewetting infrastructure and fire response.
+Drained tropical peatlands in Indonesia burn when their water table falls. The 1997 fires released carbon equivalent to 13–40% of the mean annual global emissions from fossil fuels (Page et al., 2002), the 2015 fires were the largest since then (Huijnen et al., 2016), and drainage that does not lead to fire still causes continuous subsidence and carbon loss through oxidation (Hooijer et al., 2012). The problem is not historical. In 2026, an El Niño year, the Ministry of Forestry reported more than 202,000 ha burned by 18 August (Reuters, 2026a), and independent satellite-based estimates were several times larger: 667,133 ha by 20 August, including 212,739 ha of peat (Madani Berkelanjutan, 2026), and 1.92 million ha by the end of September (Nusantara Atlas, reported by Reuters, 2026b). Fire carbon emissions reached about 76 Mt C by early September, on course to match the highest annual total of this century (Carbon Brief, 2026). The Ministry of Health recorded 283,270 cases of acute respiratory infection in seven fire-affected provinces between 18 August and 13 October, although not all of them can be attributed to smoke (CNN Indonesia, 2026), and one analysis estimated about 1,700 deaths from fire smoke in August alone (CREA, 2026). Haze closed schools in Indonesia and in Sarawak, Malaysia (Save the Children, 2026). <!-- add primary source --> These figures differ by source and method, and the official and satellite-based burned areas in particular are not directly comparable; we cite them only to show the scale of a recurring problem. <!-- VERIFY each 2026 figure against the primary source before submission; retrieved 2026-11-16 --> The groundwater table (GWT) is the variable that links these processes. Fire danger rises steeply as the water table drops, and field studies place the critical depths for tropical peat between about −0.3 and −0.85 m (Taufik et al., 2015; Hayasaka et al., 2020; Irfan et al., 2024). Indonesian regulation sets the limit at 0.4 m below the peat surface (Government Regulation No. 57/2016), and both restoration and fire prevention are evaluated against it (Putra et al., 2021; Ismail et al., 2021). A forecast that warns, a week or more ahead, that the water table is about to cross that limit would therefore be useful to the agencies that manage rewetting infrastructure and fire response.
 
 Data-driven GWT forecasting has grown quickly. A recent systematic review counted 223 machine-learning studies of groundwater level prediction, most using neural networks, support vector machines, LSTM networks, or tree ensembles (Gilbert et al., 2025), and comparisons of network architectures are now common (Wunsch et al., 2021). In tropical peatlands the literature is younger but follows the same pattern: neural networks and gradient-boosted trees have been trained on monitoring-station data from Indonesia and Malaysia (Li et al., 2024; Yonekura et al., 2025; Utomo et al., 2026). These studies report accuracy as RMSE, MAE, or R². <!-- VERIFY: persistence baseline in Li 2024, Yonekura 2025, Utomo 2026 --> Such scores say little about a slow-moving series, because a forecast that simply repeats today's level can already achieve a low error. In hydrological forecasting more broadly, the case for judging a forecast against simple benchmarks such as persistence has long been made (Pappenberger et al., 2015), and where such benchmarks are reported, naive forecasts can be hard to beat for groundwater (Jibhakate and Katpatal, 2024).
 
@@ -170,7 +170,7 @@ The analysis was locked in three stages, each marked by an annotated git tag: th
 
 ### 4.1 A static model degrades unevenly during the drought
 
-A static panel Ridge model on level lags, trained on targets in 2018, made larger errors in the 2019 drought than in the first half of 2019 at four of the five stations with enough data in both periods (Fig. 1c). The ratio of drought to pre-drought MAE ranged from 0.99 at BRG20 to 2.68 at BRG6 <!-- degradation_ratios.csv: ratio -->. Degradation was therefore real but heterogeneous: at BRG19 and BRG20 the panel model barely deteriorated. Station-specific models degraded more evenly (ratios 1.14–2.20; <!-- ratio_per_station_appendix --> Appendix [TODO]), which suggests that pooling across stations already absorbs part of the shift at some sites.
+A static panel Ridge model on level lags, trained on targets in 2018, made larger errors in the 2019 drought than in the first half of 2019 at four of the five stations with enough data in both periods (Fig. 1c). The ratio of drought to pre-drought MAE ranged from 0.99 at BRG20 to 2.68 at BRG6 <!-- degradation_ratios.csv: ratio -->. Degradation was therefore real but heterogeneous: at BRG19 and BRG20 the panel model barely deteriorated. Station-specific models degraded more evenly (ratios 1.14–2.20; Appendix A, Table A1), which suggests that pooling across stations already absorbs part of the shift at some sites.
 
 ### 4.2 No horizon meets the decision rule
 
@@ -178,7 +178,37 @@ No candidate passed criterion (a) or (b) at any horizon (Table 2, Fig. 2a), so n
 
 Static Ridge was the most fragile candidate. With the selected α = 0.001 at h = 14 and 21 <!-- config/models.yaml -->, its pooled skill fell to −388% and −525% <!-- horizon_criteria.csv: B2_static_ridge pooled_online_skill -->, as near-unregularised coefficients met inputs far outside the T1 range (Section 3.3). Criterion (c) passed in several cells: the B3 LSTM oracle, which is trained on all regimes, reached holdout skill of +3%, +5%, and +8% at h = 7, 14, and 21 <!-- horizon_summary.csv: B3_joint_lstm final_skill_mean -->. Even with access to every regime, the margin over persistence was small.
 
-**Table 2.** Decision criteria of the horizon rule for every candidate and horizon. [TODO: insert `results/tables/table2_criteria_locked.md`, formatted.]
+**Table 2.** Decision criteria of the locked horizon rule for every candidate and horizon (online evaluation, T3–T5, 16 station × task cells). Skill = 1 − MAE/MAE_persistence. *p*: one-sided Wilcoxon signed-rank test of cell MAE against persistence; *p*-Holm: corrected over the five candidates. Oracle: holdout skill of the B3 model of the same family. A horizon passes if any candidate meets (a), (b), and (c); none does.
+
+<!-- BEGIN TABLE2 (src/92_manuscript_tables.py) -->
+| *h* (d) | Candidate | Median cell skill (%) | *p* | *p*-Holm | Pooled skill (%) | Oracle skill (%) | (a) | (b) | (c) |
+|:---|:---|---:|---:|---:|---:|---:|:---|:---|:---|
+| 3 | B2 Ridge | −42 | 1.00 | 1.00 | −46 | +3.0 | ✗ | ✗ | ✓ |
+| 3 | B2 LightGBM | −21 | 0.97 | 1.00 | −24 | −2.2 | ✗ | ✗ | ✗ |
+| 3 | B5 Ridge | −1 | 0.90 | 1.00 | −8 | +3.0 | ✗ | ✗ | ✓ |
+| 3 | B5 LightGBM | −14 | 0.99 | 1.00 | −14 | −2.2 | ✗ | ✗ | ✗ |
+| 3 | B5 LSTM | −6 | 0.99 | 1.00 | −10 | +0.1 | ✗ | ✗ | ✓ |
+| 7 | B2 Ridge | −119 | 1.00 | 1.00 | −98 | +0.3 | ✗ | ✗ | ✓ |
+| 7 | B2 LightGBM | −26 | 0.97 | 1.00 | −33 | −7.4 | ✗ | ✗ | ✗ |
+| 7 | B5 Ridge | +3 | 0.84 | 1.00 | −21 | +0.3 | ✗ | ✗ | ✓ |
+| 7 | B5 LightGBM | −18 | 0.99 | 1.00 | −18 | −7.4 | ✗ | ✗ | ✗ |
+| 7 | B5 LSTM | −16 | 0.98 | 1.00 | −16 | +3.2 | ✗ | ✗ | ✓ |
+| 14 | B2 Ridge | −448 | 1.00 | 1.00 | −388 | −12.1 | ✗ | ✗ | ✗ |
+| 14 | B2 LightGBM | +4 | 0.67 | 1.00 | −14 | −6.2 | ✗ | ✗ | ✗ |
+| 14 | B5 Ridge | −31 | 0.98 | 1.00 | −88 | −12.1 | ✗ | ✗ | ✗ |
+| 14 | B5 LightGBM | −9 | 0.95 | 1.00 | −16 | −6.2 | ✗ | ✗ | ✗ |
+| 14 | B5 LSTM | −27 | 1.00 | 1.00 | −22 | +5.4 | ✗ | ✗ | ✓ |
+| 21 | B2 Ridge | −589 | 1.00 | 1.00 | −525 | −10.1 | ✗ | ✗ | ✗ |
+| 21 | B2 LightGBM | +8 | 0.55 | 1.00 | −10 | +2.0 | ✗ | ✗ | ✓ |
+| 21 | B5 Ridge | −115 | 0.99 | 1.00 | −148 | −10.1 | ✗ | ✗ | ✗ |
+| 21 | B5 LightGBM | +7 | 0.47 | 1.00 | −9 | +2.0 | ✗ | ✗ | ✓ |
+| 21 | B5 LSTM | −20 | 1.00 | 1.00 | −18 | +7.6 | ✗ | ✗ | ✓ |
+| 30 | B2 Ridge | −22 | 0.92 | 1.00 | −22 | +2.5 | ✗ | ✗ | ✓ |
+| 30 | B2 LightGBM | −24 | 0.76 | 1.00 | −24 | +15.0 | ✗ | ✗ | ✓ |
+| 30 | B5 Ridge | −10 | 0.74 | 1.00 | −11 | +2.5 | ✗ | ✗ | ✓ |
+| 30 | B5 LightGBM | −1 | 0.40 | 1.00 | −2 | +15.0 | ✗ | ✗ | ✓ |
+| 30 | B5 LSTM | −18 | 0.96 | 1.00 | −14 | −5.8 | ✗ | ✗ | ✗ |
+<!-- END TABLE2 -->
 
 ### 4.3 Skill depends on the regime
 
@@ -192,13 +222,63 @@ None of the four pipeline changes produced a candidate that passed the decision 
 
 The diagnostics differed in what they changed. D1 (change target) left the results nearly unchanged. At h = 14 and 21, selection again chose α = 0.001 <!-- results/diagnostics_models.yaml -->, and an almost unregularised Ridge on the change is equivalent to one on the level when the current level is an input. D1 therefore did not test shrinkage towards persistence, which was its purpose, and we regard it as inconclusive on that point. D2 (expanding normalisation) reduced the T4 loss of the best candidate at every horizon, by between a quarter and two thirds: from −32/−39/−42/−32/−17% to −24/−19/−19/−19/−6% across the five horizons (Fig. 4) <!-- diagnostics_summary.csv vs horizon_summary.csv: max skill_online_T4_mean over candidates -->. The gain came with losses elsewhere: for the tree and linear models, T3 skill fell under D2, for example from −14% to −80% for B2 LightGBM at h = 3 <!-- skill_online_T3_mean -->. D4 (holdout rows in retraining) moved the best T4 skill by up to nine percentage points, in either direction, without changing the overall picture.
 
-**Table 3.** Diagnostics summary (exploratory). [TODO: insert `results/tables/table3_diagnostics.md`.]
+**Table 3.** Diagnostics D1–D4 (exploratory, post hoc; they cannot overturn the horizon decision). Best pooled and best T4 online skill over the five candidates, and the smallest Holm-corrected *p*-value. D1: change target; D2: expanding normalisation; D3: D1 + D2; D4: holdout rows in B5 retraining.
+
+<!-- BEGIN TABLE3 (src/92_manuscript_tables.py) -->
+| Diagnostic | *h* (d) | Best pooled skill (%) | Best T4 skill (%) | Min. *p*-Holm | Any candidate passes |
+|:---|:---|---:|---:|---:|:---|
+| D1 | 3 | −5 | −32 | 1.00 | no |
+| D1 | 7 | −11 | −39 | 1.00 | no |
+| D1 | 14 | −14 | −42 | 1.00 | no |
+| D1 | 21 | −8 | −32 | 1.00 | no |
+| D1 | 30 | −4 | −17 | 1.00 | no |
+| D2 | 3 | −10 | −24 | 1.00 | no |
+| D2 | 7 | −15 | −19 | 1.00 | no |
+| D2 | 14 | −9 | −19 | 1.00 | no |
+| D2 | 21 | −17 | −19 | 1.00 | no |
+| D2 | 30 | −5 | −6 | 1.00 | no |
+| D3 | 3 | −2 | −21 | 1.00 | no |
+| D3 | 7 | −4 | −19 | 1.00 | no |
+| D3 | 14 | −12 | −19 | 1.00 | no |
+| D3 | 21 | −17 | −19 | 1.00 | no |
+| D3 | 30 | −12 | −6 | 1.00 | no |
+| D4 | 3 | −6 | −31 | 1.00 | no |
+| D4 | 7 | −16 | −30 | 1.00 | no |
+| D4 | 14 | −14 | −39 | 1.00 | no |
+| D4 | 21 | −10 | −30 | 1.00 | no |
+| D4 | 30 | −2 | −21 | 1.00 | no |
+<!-- END TABLE3 -->
 
 ### 4.5 Continual learning does not soften the drought
 
 Across five seeds, replay and EWC were indistinguishable from B5 LSTM in 13 of the 15 T4 comparisons (Table 4, Fig. 3a) <!-- tables/table4b_cl_vs_b5_seeds.csv: skill_T4_vs_b5 -->. Seed-to-seed variation was large: the standard deviation of B5 LSTM's T4 skill reached 39 percentage points at h = 7 <!-- skill_T4_sd -->. Of the two distinguishable cells, replay was worse than B5 at h = 3 (−53 ± 16% vs −32 ± 20%), and the fine-tuning control was better at h = 21 (+11 ± 10% vs −32 ± 36%). The same fine-tuning control lost heavily over T3–T5 at that horizon (−53 ± 15% vs −18 ± 8%; Fig. 3b) <!-- pooled_T3_T5_mean, pooled_T3_T5_sd -->, so its T4 gain reflects a trade between regimes rather than a better model. On pooled skill, no CL method was better than B5 at any horizon; fine-tuning and EWC were each worse at three of the five horizons <!-- pooled_T3_T5_vs_b5 -->.
 
-**Table 4.** Continual learning against B5 LSTM, mean ± standard deviation over five seeds. [TODO: insert `results/tables/table4b_cl_vs_b5_seeds.md`.]
+**Table 4.** Continual learning against B5 LSTM: online skill, mean ± standard deviation over five seeds. A difference is called indistinguishable (indist.) when the absolute difference in means is no larger than the larger of the two standard deviations.
+
+<!-- BEGIN TABLE4 (src/92_manuscript_tables.py) -->
+| *h* (d) | Method | T4 skill (%) | vs B5 | Pooled T3–T5 skill (%) | vs B5 |
+|:---|:---|---:|:---|---:|:---|
+| 3 | B5 LSTM | −32 ± 20 | reference | −10 ± 4 | reference |
+| 3 | Fine-tune (control) | −34 ± 17 | indist. | −16 ± 4 | worse |
+| 3 | Replay | −53 ± 16 | worse | −15 ± 6 | indist. |
+| 3 | EWC | −58 ± 28 | indist. | −18 ± 9 | indist. |
+| 7 | B5 LSTM | −39 ± 39 | reference | −16 ± 6 | reference |
+| 7 | Fine-tune (control) | −4 ± 10 | indist. | −16 ± 3 | indist. |
+| 7 | Replay | −52 ± 21 | indist. | −16 ± 5 | indist. |
+| 7 | EWC | −25 ± 22 | indist. | −24 ± 7 | worse |
+| 14 | B5 LSTM | −42 ± 36 | reference | −22 ± 7 | reference |
+| 14 | Fine-tune (control) | −18 ± 7 | indist. | −23 ± 8 | indist. |
+| 14 | Replay | −35 ± 21 | indist. | −20 ± 7 | indist. |
+| 14 | EWC | −20 ± 7 | indist. | −27 ± 10 | indist. |
+| 21 | B5 LSTM | −32 ± 36 | reference | −18 ± 7 | reference |
+| 21 | Fine-tune (control) | +11 ± 10 | better | −53 ± 15 | worse |
+| 21 | Replay | −44 ± 31 | indist. | −26 ± 10 | indist. |
+| 21 | EWC | −10 ± 22 | indist. | −57 ± 23 | worse |
+| 30 | B5 LSTM | −17 ± 25 | reference | −14 ± 8 | reference |
+| 30 | Fine-tune (control) | −19 ± 8 | indist. | −30 ± 11 | worse |
+| 30 | Replay | −23 ± 19 | indist. | −18 ± 9 | indist. |
+| 30 | EWC | −2 ± 11 | indist. | −32 ± 18 | worse |
+<!-- END TABLE4 -->
 
 ### 4.6 Event skill and the damped trend
 
@@ -206,7 +286,27 @@ On crossings of the −0.4 m threshold during T3–T5, the trained models scored
 
 On MAE, the damped trend lost to persistence overall (pooled skill −16% to −36% for φ = 0.9; Table 5), because it extrapolated recessions into re-wetting events in T3 and T5. In T4, however, it was the only forecaster with positive skill: +5% to +9% for φ = 0.9 across the five horizons, with similar values for φ = 0.8 <!-- damped_trend.csv: skill_T4 -->. This result is descriptive: T4 contains four or five station cells, the baseline was added after the horizon results were known, and only φ was fixed in advance. Read together with Section 4.3, it suggests that the best forecaster depends on the regime: trend continuation during recession, trained models during re-wetting, and persistence otherwise. We do not claim this here; it is hypothesis H5 for the confirmatory study (Section 5).
 
-**Table 5.** Damped-trend reference. [TODO: insert `results/tables/table5_damped_trend.md`.]
+**Table 5.** Damped-trend reference (exploratory, post hoc). φ = 0.9 was fixed in advance as the primary value; 0.8 and 0.95 are sensitivity checks. Skill is online MAE skill against persistence; crossing F1 uses the −0.4 m definition of Section 3.6. With zero to five crossings, F1 in T4 is not reported.
+
+<!-- BEGIN TABLE5 (src/92_manuscript_tables.py) -->
+| *h* (d) | φ | Pooled skill (%) | T3 (%) | T4 (%) | T5 (%) | Crossing F1, T3–T5 | Crossings, T3–T5 | Crossings, T4 |
+|:---|:---|---:|---:|---:|---:|---:|---:|---:|
+| 3 | 0.90 | −16 | −19 | +8 | −20 | 0.24 | 47 | 0 |
+| 3 | 0.80 | −11 | −14 | +10 | −15 | 0.22 | 47 | 0 |
+| 3 | 0.95 | −20 | −23 | +5 | −23 | 0.28 | 47 | 0 |
+| 7 | 0.90 | −29 | −35 | +5 | −22 | 0.22 | 74 | 0 |
+| 7 | 0.80 | −16 | −21 | +9 | −11 | 0.21 | 74 | 0 |
+| 7 | 0.95 | −39 | −46 | +1 | −30 | 0.25 | 74 | 0 |
+| 14 | 0.90 | −34 | −46 | +5 | −11 | 0.17 | 90 | 4 |
+| 14 | 0.80 | −13 | −20 | +9 | +2 | 0.14 | 90 | 4 |
+| 14 | 0.95 | −58 | −73 | −5 | −28 | 0.17 | 90 | 4 |
+| 21 | 0.90 | −36 | −51 | +8 | −12 | 0.25 | 84 | 5 |
+| 21 | 0.80 | −12 | −19 | +9 | −1 | 0.16 | 84 | 5 |
+| 21 | 0.95 | −70 | −94 | +2 | −31 | 0.25 | 84 | 5 |
+| 30 | 0.90 | −36 | −53 | +9 | −11 | 0.22 | 109 | 5 |
+| 30 | 0.80 | −12 | −18 | +5 | −1 | 0.13 | 109 | 5 |
+| 30 | 0.95 | −77 | −109 | +11 | −32 | 0.25 | 109 | 5 |
+<!-- END TABLE5 -->
 
 ## 5. Discussion
 
@@ -265,6 +365,20 @@ Four points follow from this study.
 
 The staged locking protocol made the negative result possible to report. Each stage fixed the next decision before its results were known, so the absence of a winning model is an outcome of the design rather than the end of a search.
 
+## Appendix A. Degradation ratios per station
+
+**Table A1.** Ratio of drought (T4) to pre-drought (first half of 2019) MAE for a static panel Ridge model on level lags (seven-day horizon) trained on 2018 targets, at the five stations with T4 rows <!-- results/drift_regression.csv -->. A ratio above 1 means the model degraded in the drought. The main text uses the panel model with the BRG3 suspect segment excluded. The last two columns keep the segment, to show its effect: at BRG3 it would raise the panel ratio from 1.95 to 3.40, which is why the segment is excluded from every feature, target, and metric. With the segment excluded, only nine drought rows remain at BRG3.
+
+<!-- BEGIN TABLEA1 (src/92_manuscript_tables.py) -->
+| Station | Pre-drought rows | Drought rows | Panel | Per station | Panel, suspect kept | Per station, suspect kept |
+|:---|---:|---:|---:|---:|---:|---:|
+| BRG3 | 181 | 9 | 1.95 | 1.89 | 3.40 | 4.74 |
+| BRG5 | 119 | 35 | 2.43 | 2.05 | 2.43 | 2.05 |
+| BRG6 | 181 | 99 | 2.68 | 1.74 | 2.68 | 1.74 |
+| BRG19 | 138 | 53 | 1.17 | 1.14 | 1.17 | 1.14 |
+| BRG20 | 59 | 20 | 0.99 | 2.20 | 0.99 | 2.20 |
+<!-- END TABLEA1 -->
+
 ## Data and code availability
 
 [TODO: Zenodo DOI for the repository at tag analysis-frozen. Raw data: Taufik et al. (2022), Data in Brief 41:107903.]
@@ -273,7 +387,10 @@ The staged locking protocol made the negative result possible to report. Each st
 
 <!-- DOIs checked against Crossref on 2026-11-16, except entries marked [no DOI]. Verify page ranges and formatting to EMS style before submission. -->
 
+- Carbon Brief (2026). El Niño: Indonesia fire emissions in 2026 'on track' to match record for this century. 11 September 2026. <!-- add URL; verify 76 MtC -->
+- CNN Indonesia (2026). Kemenkes catat 283.270 orang idap ISPA akibat karhutla. 14 October 2026. <!-- add URL; prefer Ministry of Health primary release -->
 - Chaudhry, A., Rohrbach, M., Elhoseiny, M., Ajanthan, T., Dokania, P.K., Torr, P.H.S., Ranzato, M. (2019). On tiny episodic memories in continual learning. arXiv:1902.10486. [no DOI]
+- CREA (Centre for Research on Energy and Clean Air) (2026). Choking on inaction: Indonesia's fires led to 1,700 deaths in August. 14 September 2026. https://energyandcleanair.org/?p=16305 <!-- verify method -->
 - Dawid, A.P. (1984). Statistical theory: the prequential approach. Journal of the Royal Statistical Society A, 147, 278–292. <!-- DOI to check -->
 - De Lange, M., Aljundi, R., Masana, M., Parisot, S., Jia, X., Leonardis, A., Slabaugh, G., Tuytelaars, T. (2022). A continual learning survey: defying forgetting in classification tasks. IEEE Transactions on Pattern Analysis and Machine Intelligence, 44, 3366–3385. https://doi.org/10.1109/TPAMI.2021.3057446
 - Funk, C., et al. (2015). The climate hazards infrared precipitation with stations — a new environmental record for monitoring extremes. Scientific Data, 2, 150066. <!-- DOI to check -->
@@ -294,10 +411,14 @@ The staged locking protocol made the negative result possible to report. Each st
 - Kirkpatrick, J., et al. (2017). Overcoming catastrophic forgetting in neural networks. PNAS, 114, 3521–3526. <!-- DOI to check -->
 - Klemeš, V. (1986). Operational testing of hydrological simulation models. Hydrological Sciences Journal, 31, 13–24. https://doi.org/10.1080/02626668609491024
 - Li, L., Sali, A.B., Liew, J.T., et al. (2024). Machine learning for peatland ground water level (GWL) prediction via IoT system. IEEE Access, 12. https://doi.org/10.1109/ACCESS.2024.3419237
+- Madani Berkelanjutan (2026). August 2026: the peak of the forest and land fire crisis and a real threat to Indonesia's climate commitments. 28 August 2026. https://madaniberkelanjutan.id/news-event/august-2026-the-peak-of-the-forest-and-land-fire-crisis-and-a-real-threat-to-indonesia-s-climate-commitments
 - Nosek, B.A., Ebersole, C.R., DeHaven, A.C., Mellor, D.T. (2018). The preregistration revolution. PNAS, 115, 2600–2606. https://doi.org/10.1073/pnas.1708274114
 - Page, S.E., Siegert, F., Rieley, J.O., Boehm, H.-D.V., Jaya, A., Limin, S. (2002). The amount of carbon released from peat and forest fires in Indonesia during 1997. Nature, 420, 61–65. https://doi.org/10.1038/nature01131
 - Pappenberger, F., Ramos, M.H., Cloke, H.L., Wetterhall, F., Alfieri, L., Bogner, K., Mueller, A., Salamon, P. (2015). How do I know if my forecasts are better? Using benchmarks in hydrological ensemble prediction. Journal of Hydrology, 522, 697–713. https://doi.org/10.1016/j.jhydrol.2015.01.024
 - Putra, S.S., Holden, J., Baird, A.J. (2021). The effects of ditch dams on water-level dynamics in tropical peatlands. Hydrological Processes, 35, e14174. https://doi.org/10.1002/hyp.14174
+- Reuters (2026a). [Ministry of Forestry burned-area figure, 202,000 ha as of 18 August 2026.] <!-- find exact article; Wikipedia cites Reuters 11 Aug and Kumparan 18 Aug 2026; prefer SiPongi -->
+- Reuters (2026b). [Nusantara Atlas: 1.92 million ha burned by end of September 2026.] 20 October 2026. <!-- add title and URL -->
+- Save the Children (2026). Indonesia wildfire haze threatens children across Southeast Asia and closes schools. <!-- add date and URL -->
 - Taufik, M., Setiawan, B.I., Van Lanen, H.A.J. (2015). Modification of a fire drought index for tropical wetland ecosystems by including water table depth. Agricultural and Forest Meteorology, 203, 1–10. https://doi.org/10.1016/j.agrformet.2014.12.006 <!-- check volume/pages -->
 - Taufik, M., Veldhuizen, A.A., Wösten, J.H.M., Van Lanen, H.A.J. (2019). Exploration of the importance of physical properties of Indonesian peatlands to assess critical groundwater table depths, associated drought and fire hazard. Geoderma, 347, 160–169. https://doi.org/10.1016/j.geoderma.2019.04.001 <!-- check authors/volume/pages -->
 - Taufik, M., TW, M., Awaluddin, Mukharomah, A.K., Minasny, B. (2022). Groundwater table and soil-hydrological properties datasets of Indonesian peatlands. Data in Brief, 41, 107903. https://doi.org/10.1016/j.dib.2022.107903
