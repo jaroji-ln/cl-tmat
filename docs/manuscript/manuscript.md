@@ -199,18 +199,60 @@ On MAE, the damped trend lost to persistence overall (pooled skill −16% to −
 
 ## 5. Discussion
 
-[TODO — outline]
+### 5.1 Why persistence is hard to beat
 
-- Why persistence is strong for slow peat dynamics; what that implies for operational early warning.
-- Online retraining fails at drought onset: learning from the past cannot anticipate a regime the model has not seen.
-- MAE and event skill tell different stories; operational value depends on the metric.
-- The best forecaster changes with the regime (H5; to be tested on SiTMAT data, not claimed here).
-- Limitations (from CLAUDE.md list 1–8): one severe drought; 4–5 station cells in T4; selected α at grid edges; B5 without holdout rows in the locked run; single-seed LSTM selection; D1 inconclusive; D5 definition post hoc; one regime calendar for two provinces; six unvalidated coordinates.
-- Confirmatory test on SiTMAT (H1–H5, pre-registered).
+The central result is negative. Under a rule fixed before the horizons were run, no adaptive or static model beat persistence over the evaluation period. This is less surprising than it may look. The water table in tropical peat moves slowly: storage is large, drainage is limited by low hydraulic conductivity in the deeper catotelm, and day-to-day changes are small compared with the seasonal range [cite: peat hydrology, e.g. Ingram 1983; Holden 2005]. Under those conditions the level at *t* already explains most of the level at *t* + *h*, and a model must predict the remaining change better than "no change" to earn positive skill. That change is driven largely by rainfall in the days after the forecast is issued, which no input available at *t* contains. Our models did not use rainfall forecasts, and in the absence of such inputs, the information ceiling may sit close to persistence.
+
+The margins of the oracle make the same point. B3, trained on every regime including those it was later scored on, reached only +3% to +8% holdout skill at h = 7–21 (Section 4.2). If a model that has seen the drought gains so little, the gap between persistence and a realistic model is narrow from the outset, and the regime shift only has to cost a few percentage points to erase it.
+
+A practical consequence follows. Studies of GWT forecasting in peatlands commonly report MAE, RMSE, or R² without a persistence reference [cite: ML GWT studies in peatlands]. On slow-moving series these scores can look good for a model that adds nothing beyond the current level. We suggest that skill against persistence, on identical rows and with online evaluation across regimes, should be the minimum standard for such studies.
+
+### 5.2 Retraining cannot anticipate a new regime
+
+Periodic retraining (B5) was the strongest candidate in the drought, yet it still lost to persistence by 17% to 42% depending on the horizon (Section 4.3). Continual learning did not change this: replay and EWC were indistinguishable from B5 in 13 of 15 T4 comparisons (Section 4.5). The explanation is structural rather than methodological. Every update, whether a full retraining, a replay step, or an EWC-regularised fine-tune, learns from rows whose targets have already been observed. At the onset of the 2019 drought those rows came from the wet season and the earlier, milder dry season. No update schedule can supply a regime that has not yet occurred, and the methods we tested differ mainly in how they weigh the past, not in whether they can see the future.
+
+The scale problem adds to this. Inputs in T4 lay far outside the range of the T1 statistics used for normalisation (Section 3.3), and D2 showed that letting the statistics expand with time reduced the drought loss by between a quarter and two thirds. It did so at a cost in the wet season for the tree and linear models (Section 4.4). We read this as evidence that out-of-range inputs explain part of the drought failure, but not as a remedy: an expanding scaler also shifts the meaning of every input during the period when the model most needs stable inputs.
+
+The one exception, fine-tuning at h = 21, illustrates the trade-off rather than escaping it. Its gain in T4 was paid for in T3 and T5, and its pooled skill was far worse than that of B5. A method that adapts quickly to the latest regime will tend to win during a persistent regime and lose at each transition. For a forecasting service the transitions, not the persistent stretches, are where forecasts matter most.
+
+### 5.3 Error skill and event skill disagree
+
+MAE skill and crossing F1 gave different rankings. On MAE, persistence beat every trained model; on crossings of −0.4 m, persistence scores zero by construction, and the trained models outperformed the damped trend in 19 of 25 cells (Section 4.6). Neither metric is wrong. MAE rewards small errors on ordinary days, which persistence delivers; the crossing metric rewards anticipating the rare day when the level falls below the regulatory limit, which persistence cannot do at all.
+
+The choice of metric therefore depends on the use. For peat fire early warning, the operational question is whether the water table will fall below −0.4 m, not how close the forecast is on a day when it stays well above or well below that level [cite: GWT and fire risk, e.g. Taufik et al.; Putra et al.]. We stress two caveats, however. The event results carry no uncertainty estimate, and the operational definition of a crossing was fixed after the horizon results were known (Section 3.6). They indicate where an operational evaluation should look, not a finding we can defend on its own.
+
+### 5.4 The best forecaster may depend on the regime
+
+Read together, the results suggest a pattern. During the drought, when levels fell steadily, the damped trend was the only forecaster with positive MAE skill. During the recovery, trained models beat persistence, sometimes by a wide margin. In the wet season, neither the candidates nor the damped trend beat persistence at any horizon <!-- horizon_summary.csv: skill_online_T3_mean; damped_trend.csv: skill_T3 -->. This is consistent with the physics: a recession is close to a smooth decay, which a damped trend continues, whereas re-wetting depends on rainfall events that a model with rainfall inputs can partly capture once they have begun.
+
+We do not claim this pattern. It emerged from analyses added after the main results were known, T4 contains only four or five station cells, and T5 is short. Testing it on this dataset again would mean selecting the regime-switching rule on the data used to discover it. We have instead stated it as hypothesis H5 for a confirmatory study on independent data: that a regime switch with rules fixed in advance (trend during recession, model during re-wetting, persistence otherwise) beats persistence on pooled skill. The same study will test whether adaptive models fail to beat persistence on pooled skill (H1), whether model skill is positive during re-wetting and negative during recession (H2), whether models beat the damped trend on crossings (H3), and whether a change model shrunk towards persistence with a fixed penalty is no worse than persistence (H4). The data will come from the SiTMAT monitoring network in Riau, which was not seen during this study, and the operational definitions will be pre-registered before the series is analysed.
+
+The regime-aware adaptation trigger we originally planned (adaptation driven by the 90-day rainfall deficit and the 14-day rate of water-table decline instead of a fixed schedule) was suspended for the same reason. It presupposed a model that beats persistence and would only decide when to retrain it. Without such a model, calibrating the trigger on this dataset would add another set of choices made with the results in view. If it is revisited, it will be labelled exploratory.
+
+### 5.5 Limitations
+
+Several limitations bound these conclusions. We list them in full because some of them would otherwise be easy to miss.
+
+*Data.* The record covers one severe drought, at eight stations in two provinces, over less than two years. T4 has only 216 usable rows at h = 7 and four or five station cells per test. With five cells, the smallest two-sided Wilcoxon *p*-value is 0.0625, so no per-cell comparison in T4 can be significant at 0.05 by construction; we therefore report the T4 comparisons between CL and B5 descriptively. One regime calendar was applied to both provinces, although October was wet at the Kubu Raya stations in both years (Section 2.5). Only two of the eight station coordinates are published; the other six were estimated from a map and could not be validated independently (Section 2.4). The validated errors (about 210 m) are small relative to a CHIRPS cell (0.05°, about 5.5 km), and bilinear interpolation softens the effect of cell boundaries, but we cannot show that the same holds for the six estimated stations. The suspect segment at BRG3 was excluded from every feature, target, and metric (Section 2.2); the degradation analysis with the segment included is retained in `results/drift_regression.csv`.
+
+*Model selection.* The selected Ridge penalty lay at the edge of the grid at three horizons (α = 0.001 at h = 14 and 21, α = 1000 at h = 30). The grid was locked before selection and was not widened afterwards, so better values may exist outside it. LSTM hyperparameters were selected with a single seed. In the locked runs, B5 was retrained without the holdout rows even when their targets had already been observed; D4 showed that adding them moved the best T4 skill by up to nine percentage points without changing the picture.
+
+*Diagnostics.* D1 was meant to test a change model shrunk towards persistence, but selection chose a near-zero penalty at h = 14 and 21, so the shrinkage never occurred. D1 is therefore inconclusive on that mechanism and should not be read as evidence that a change target does not help. H4 tests the mechanism directly with a penalty fixed in advance. The name of the event metric was specified before the horizon results, but its definition was not.
+
+*Researcher degrees of freedom.* We were not blind to the data (Section 3.10). Descriptive statistics of the drought and the seven-day baseline results were seen before the horizon rule was locked, and the regime boundaries were drawn from the seasonal pattern of the data. The staged tags limit, but do not remove, the scope for choices informed by the results. We consider the negative result robust to this, since we found no model that beats persistence despite every opportunity to make one; the positive patterns (T5 skill, the damped trend in T4) are the results most exposed to it, which is why we have moved them to the confirmatory study.
 
 ## 6. Conclusions
 
-[TODO]
+We asked whether adaptive models keep tropical peat GWT forecasts accurate through a hydrological regime shift. On eight stations in Sumatra and Borneo through the 2019 El Niño drought, and under decision rules locked before each stage of the analysis, the answer was no: no static, periodically retrained, or continual-learning model beat persistence over the evaluation period at any horizon from 3 to 30 days.
+
+Four points follow from this study.
+
+1. Persistence is a demanding reference for slow peat dynamics. GWT forecasting studies should report skill against it, on identical rows, with time-ordered and online evaluation across regimes.
+2. Periodic retraining and continual learning cannot anticipate a regime they have not seen. In the drought, every candidate lost to persistence, and replay and EWC were indistinguishable from simple retraining.
+3. Error-based and event-based skill can disagree. A model that loses on MAE may still anticipate threshold crossings that persistence cannot, so the evaluation should match the operational use.
+4. The best forecaster may depend on the regime. This is a hypothesis, not a finding. We have stated it in advance and will test it on independent data.
+
+The staged locking protocol made the negative result possible to report. Each stage fixed the next decision before its results were known, so the absence of a winning model is an outcome of the design rather than the end of a search.
 
 ## Data and code availability
 
