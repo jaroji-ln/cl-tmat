@@ -1,0 +1,31 @@
+# Fill in authors, licence, and the Zenodo DOI before publishing the archive.
+cff-version: 1.2.0
+message: "If you use this code or these results, please cite the article and this archive."
+title: "cl-tmat: locked-protocol benchmark of adaptive groundwater-table forecasting in tropical peatlands"
+type: software
+authors:
+  - family-names: "TODO"
+    given-names: "TODO"
+    affiliation: "TODO"
+version: "analysis-frozen"
+date-released: "2026-11-16"
+# doi: 10.5281/zenodo.TODO
+# license: TODO
+keywords:
+  - tropical peatland
+  - groundwater table
+  - forecasting
+  - persistence baseline
+  - continual learning
+  - El Niño
+references:
+  - type: article
+    authors:
+      - family-names: "Taufik"
+        given-names: "Muh"
+    title: "Groundwater table and soil-hydrological properties datasets of Indonesian peatlands"
+    journal: "Data in Brief"
+    volume: 41
+    start: 107903
+    year: 2022
+    doi: "10.1016/j.dib.2022.107903"

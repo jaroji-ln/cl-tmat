@@ -405,7 +405,7 @@ The staged locking protocol made the negative result possible to report. Each st
 
 ## Data and code availability
 
-[TODO: Zenodo DOI for the repository at tag analysis-frozen. Raw data: Taufik et al. (2022), Data in Brief 41:107903.]
+The groundwater table data are publicly available as supplementary material to Taufik et al. (2022), https://doi.org/10.1016/j.dib.2022.107903. CHIRPS rainfall is publicly available (Funk et al., 2015). All code, locked configuration files, run logs, results, and figures are archived at Zenodo, https://doi.org/10.5281/zenodo.[TODO], including the annotated git tags that mark each stage of the analysis. The script `reproduce.sh` rebuilds every number, table, and figure from the raw data; the exact software versions are listed in `requirements-lock.txt`.
 
 ## References
 

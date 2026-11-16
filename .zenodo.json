@@ -1,0 +1,9 @@
+{
+  "title": "cl-tmat: locked-protocol benchmark of adaptive groundwater-table forecasting in tropical peatlands",
+  "upload_type": "software",
+  "description": "Code, locked configuration, run logs, results, and figures for a benchmark of static, periodically retrained, and continual-learning groundwater-table forecasts against persistence at eight tropical peatland stations in Indonesia (2018-2019), including the 2019 El Nino drought. The raw groundwater data (Taufik et al., 2022, Data in Brief 41:107903) are not redistributed.",
+  "creators": [{"name": "TODO, TODO", "affiliation": "TODO"}],
+  "keywords": ["tropical peatland", "groundwater table", "forecasting", "persistence baseline", "continual learning", "El Nino"],
+  "related_identifiers": [{"identifier": "10.1016/j.dib.2022.107903", "relation": "isDerivedFrom", "scheme": "doi"}],
+  "license": "TODO"
+}

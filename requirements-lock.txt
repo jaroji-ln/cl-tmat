@@ -1,0 +1,18 @@
+# Exact versions used for every result at tag analysis-frozen.
+# Python 3.11.7, macOS (x86_64, Intel Core i5-1038NG7), CPU only, PyTorch restricted to one thread.
+# Install with: pip install -r requirements-lock.txt
+numpy==1.26.4
+pandas==2.1.4
+scipy==1.10.1
+scikit-learn==1.6.1
+lightgbm==4.6.0
+torch==2.2.2
+statsmodels==0.14.0
+matplotlib==3.8.0
+seaborn==0.12.2
+pillow==10.2.0
+openpyxl==3.0.10
+PyYAML==6.0.1
+pytest==7.4.0
+joblib==1.2.0
+threadpoolctl==3.6.0
