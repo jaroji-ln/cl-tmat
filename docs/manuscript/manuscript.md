@@ -157,14 +157,45 @@ The analysis was locked in three stages, each marked by an annotated git tag: th
 
 ## 4. Results
 
-[TODO — outline and sources]
+### 4.1 A static model degrades unevenly during the drought
 
-- 4.1 Degradation during the drought (Fig. 1c; `results/degradation_ratios.csv`).
-- 4.2 Horizon decision: no horizon passes (Table 2, Fig. 2; `results/horizon_criteria.csv`, `horizon_decision.yaml`).
-- 4.3 Skill by regime: negative in T3 and T4, positive in T5 (Fig. 2b–d; `horizon_summary.csv`).
-- 4.4 Diagnostics D1–D4 (Table 3, Fig. 4). D1 is inconclusive for shrinkage towards persistence because the selected α was 0.001 at h = 14 and 21.
-- 4.5 Continual learning vs B5 (Table 4b, Fig. 3): indistinguishable in 13 of 15 T4 cells.
-- 4.6 Event metric and damped trend (Table 5, Fig. 5): damped trend is the only forecaster with positive T4 skill; models beat it on crossings in most cells.
+A static panel Ridge model on level lags, trained on targets in 2018, made larger errors in the 2019 drought than in the first half of 2019 at four of the five stations with enough data in both periods (Fig. 1c). The ratio of drought to pre-drought MAE ranged from 0.99 at BRG20 to 2.68 at BRG6 <!-- degradation_ratios.csv: ratio -->. Degradation was therefore real but heterogeneous: at BRG19 and BRG20 the panel model barely deteriorated. Station-specific models degraded more evenly (ratios 1.14–2.20; <!-- ratio_per_station_appendix --> Appendix [TODO]), which suggests that pooling across stations already absorbs part of the shift at some sites.
+
+### 4.2 No horizon meets the decision rule
+
+No candidate passed criterion (a) or (b) at any horizon (Table 2, Fig. 2a), so no main horizon could be chosen and the benchmark framing applied (`results/horizon_decision.yaml`). The smallest one-sided Wilcoxon *p*-value before correction was 0.40 (B5 LightGBM, h = 30), and every Holm-corrected value was 1.0 <!-- horizon_criteria.csv: wilcoxon_one_sided_p, p_holm -->. Pooled online skill over T3–T5 was negative for all five candidates at all five horizons. The least negative value per horizon was −8%, −16%, −14%, −9%, and −2% for h = 3, 7, 14, 21, and 30 days <!-- horizon_criteria.csv: max pooled_online_skill per horizon -->. At most 10 of the 16 station × task cells favoured any model over persistence <!-- cells_better_than_persistence, n_cells -->.
+
+Static Ridge was the most fragile candidate. With the selected α = 0.001 at h = 14 and 21 <!-- config/models.yaml -->, its pooled skill fell to −388% and −525% <!-- horizon_criteria.csv: B2_static_ridge pooled_online_skill -->, as near-unregularised coefficients met inputs far outside the T1 range (Section 3.3). Criterion (c) passed in several cells: the B3 LSTM oracle, which is trained on all regimes, reached holdout skill of +3%, +5%, and +8% at h = 7, 14, and 21 <!-- horizon_summary.csv: B3_joint_lstm final_skill_mean -->. Even with access to every regime, the margin over persistence was small.
+
+**Table 2.** Decision criteria of the horizon rule for every candidate and horizon. [TODO: insert `results/tables/table2_criteria_locked.md`, formatted.]
+
+### 4.3 Skill depends on the regime
+
+Skill differed sharply between regimes (Fig. 2b–d). In the wet season (T3), most candidates were slightly to moderately worse than persistence; in the El Niño drought (T4), every candidate was worse at every horizon. The best T4 skill per horizon belonged to B5 LSTM: −32%, −39%, −42%, −32%, and −17% <!-- horizon_summary.csv: skill_online_T4_mean -->. Periodic retraining therefore did not protect against the drought; each retraining could only learn from regimes that had already passed.
+
+The recovery period (T5) was the exception. B5 Ridge beat persistence at every horizon, from +10% at h = 3 to +45% at h = 14 <!-- skill_online_T5_mean, B5_retrain30d_ridge -->, and B5 LSTM was positive from h = 7 onwards. T5 is short (136 rows at h = 7; Table 1), and it is pooled with T3 and T4 in the decision rule, so this pattern did not change the outcome. We treat it as a hypothesis for independent data (Section 5) rather than a finding of this study.
+
+### 4.4 Diagnostics do not rescue the models
+
+None of the four pipeline changes produced a candidate that passed the decision rule (Table 3). The best pooled online skill across all diagnostics, candidates, and horizons was −1.5% (D3, B5 Ridge, h = 3), and the smallest uncorrected *p*-value was 0.36 <!-- diagnostics_criteria.csv -->.
+
+The diagnostics differed in what they changed. D1 (change target) left the results nearly unchanged. At h = 14 and 21, selection again chose α = 0.001 <!-- results/diagnostics_models.yaml -->, and an almost unregularised Ridge on the change is equivalent to one on the level when the current level is an input. D1 therefore did not test shrinkage towards persistence, which was its purpose, and we regard it as inconclusive on that point. D2 (expanding normalisation) reduced the T4 loss of the best candidate at every horizon, by between a quarter and two thirds: from −32/−39/−42/−32/−17% to −24/−19/−19/−19/−6% across the five horizons (Fig. 4) <!-- diagnostics_summary.csv vs horizon_summary.csv: max skill_online_T4_mean over candidates -->. The gain came with losses elsewhere: for the tree and linear models, T3 skill fell under D2, for example from −14% to −80% for B2 LightGBM at h = 3 <!-- skill_online_T3_mean -->. D4 (holdout rows in retraining) moved the best T4 skill by up to nine percentage points, in either direction, without changing the overall picture.
+
+**Table 3.** Diagnostics summary (exploratory). [TODO: insert `results/tables/table3_diagnostics.md`.]
+
+### 4.5 Continual learning does not soften the drought
+
+Across five seeds, replay and EWC were indistinguishable from B5 LSTM in 13 of the 15 T4 comparisons (Table 4, Fig. 3a) <!-- tables/table4b_cl_vs_b5_seeds.csv: skill_T4_vs_b5 -->. Seed-to-seed variation was large: the standard deviation of B5 LSTM's T4 skill reached 39 percentage points at h = 7 <!-- skill_T4_sd -->. Of the two distinguishable cells, replay was worse than B5 at h = 3 (−53 ± 16% vs −32 ± 20%), and the fine-tuning control was better at h = 21 (+11 ± 10% vs −32 ± 36%). The same fine-tuning control lost heavily over T3–T5 at that horizon (−53 ± 15% vs −18 ± 8%; Fig. 3b) <!-- pooled_T3_T5_mean, pooled_T3_T5_sd -->, so its T4 gain reflects a trade between regimes rather than a better model. On pooled skill, no CL method was better than B5 at any horizon; fine-tuning and EWC were each worse at three of the five horizons <!-- pooled_T3_T5_vs_b5 -->.
+
+**Table 4.** Continual learning against B5 LSTM, mean ± standard deviation over five seeds. [TODO: insert `results/tables/table4b_cl_vs_b5_seeds.md`.]
+
+### 4.6 Event skill and the damped trend
+
+On crossings of the −0.4 m threshold during T3–T5, the trained models scored F1 values between 0.14 and 0.47 against 47 to 109 observed crossings per horizon (Fig. 5) <!-- diagnostics_crossing_f1.csv, diagnostic = locked, scope = T3_T5 -->, whereas persistence scores zero by construction. The damped trend (φ = 0.9) scored 0.17–0.25 <!-- damped_trend.csv: crossing_f1_T3_T5 -->. Models beat it in 19 of the 25 candidate × horizon cells; B5 Ridge and B5 LSTM did so at every horizon, while static Ridge did so only at h = 21 and 30 <!-- damped_trend_vs_models_crossing.csv: model_minus_damped -->. The event results carry no uncertainty estimate, and T4 contained only zero to five crossings per horizon, too few to interpret <!-- true_crossings_T4 -->.
+
+On MAE, the damped trend lost to persistence overall (pooled skill −16% to −36% for φ = 0.9; Table 5), because it extrapolated recessions into re-wetting events in T3 and T5. In T4, however, it was the only forecaster with positive skill: +5% to +9% for φ = 0.9 across the five horizons, with similar values for φ = 0.8 <!-- damped_trend.csv: skill_T4 -->. This result is descriptive: T4 contains four or five station cells, the baseline was added after the horizon results were known, and only φ was fixed in advance. Read together with Section 4.3, it suggests that the best forecaster depends on the regime: trend continuation during recession, trained models during re-wetting, and persistence otherwise. We do not claim this here; it is hypothesis H5 for the confirmatory study (Section 5).
+
+**Table 5.** Damped-trend reference. [TODO: insert `results/tables/table5_damped_trend.md`.]
 
 ## 5. Discussion
 
