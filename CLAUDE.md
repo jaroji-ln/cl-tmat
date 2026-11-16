@@ -113,6 +113,10 @@ D1–D5 sudah dijalankan (`src/06_diagnostics.py` → `results/diagnostics_*.csv
 
 Definisi di `config/closing.yaml`, di-commit sebelum dijalankan. Replay/EWC: `src/07_cl_methods.py` → `results/cl_*.csv`. Tren teredam (`exploratory_post_hoc`, arah konservatif): `src/08_damped_trend.py` → `results/damped_trend*.csv`. Gambar 2–5 dan tabel 2–5: `src/91_final_outputs.py` → `figures/`, `results/tables/`. Tidak ada diagnostik tambahan pada data Taufik. Tag `analysis-frozen` dibuat 2026-11-16 setelah peneliti meninjau butir 1 dan 2. Sesudah tag itu, kode hanya berubah untuk perbaikan bug yang dicatat terbuka.
 
+## Naskah artikel 1 (keputusan peneliti, 2026-11-16)
+
+Sasaran *Environmental Modelling & Software*, bahasa Inggris, gaya akademik yang natural. Draf di `docs/manuscript/manuscript.md`; setiap angka diberi komentar sumber di `results/`. Tabel 1 memakai baris fitur t+7 dari `results/data_audit.csv`, bukan angka "hari terpakai" di `src/common.py` (yang tidak dihitung skrip). Jumlah baris mentah per stasiun juga tidak punya skrip, jadi tidak dipakai di naskah.
+
 ## Masalah terbuka (per 2026-11-04)
 
 Jangan menganggap ini selesai sebelum peneliti memutuskan.
