@@ -377,6 +377,18 @@ Four points follow from this study.
 
 The staged locking protocol made the negative result possible to report. Each stage fixed the next decision before its results were known, so the absence of a winning model is an outcome of the design rather than the end of a search.
 
+## Figure captions
+
+**Fig. 1.** Data and evidence of degradation. (a) Daily groundwater table at the four Batanghari (Jambi) stations (top) and the four Kubu Raya (West Kalimantan) stations (bottom), in metres, negative below the surface; shading marks the five regimes T1–T5. The dotted line marks the BRG3 suspect segment, which is excluded from all features, targets, and metrics. (b) Monthly CHIRPS rainfall, mean of the stations in each peatland. (c) MAE of a static panel Ridge model (level lags, seven-day horizon, trained on 2018 targets) before the drought (January–June 2019, open circles) and during the 2019 El Niño drought (T4, filled circles), at the five stations with T4 rows; labels give the drought-to-pre-drought ratio and the number of drought rows. <!-- figures/fig1_tmat_regimes_drift; results/drift_regression.csv -->
+
+**Fig. 2.** Online skill against persistence (1 − MAE/MAE_persistence) by forecast horizon for the five candidates and the damped-trend reference (φ = 0.9, exploratory): (a) pooled over T3–T5, (b) wet season T3, (c) El Niño drought T4, (d) recovery T5. Values below −100% are drawn at the axis floor (▼); exact values are in Table 2 and `results/horizon_summary.csv`. LSTM values are means over five seeds. <!-- figures/fig2_skill_horizon -->
+
+**Fig. 3.** Continual learning against periodic retraining: online skill of B5 LSTM, the fine-tuning control, replay, and EWC, means over five seeds, (a) in the El Niño drought T4 and (b) pooled over T3–T5. Standard deviations are given in Table 4. <!-- figures/fig3_cl_t4 -->
+
+**Fig. 4.** Diagnostics (exploratory, post hoc): online T4 skill of the best of the five candidates under the locked pipeline and under D1 (change target), D2 (expanding normalisation), D3 (D1 + D2), and D4 (B5 retrained with holdout rows). D1 coincides with the locked pipeline because B5 LSTM, which D1 does not change, is the best candidate in T4; for the same reason D3 coincides with D2 at most horizons. <!-- figures/fig4_diagnostics_t4 -->
+
+**Fig. 5.** F1 score for forecasting crossings of the −0.4 m threshold (level at *t* at or above −0.4 m and level at *t* + *h* below it) over T3–T5, for the five candidates and the damped-trend reference. *n* is the number of observed crossings per horizon. Persistence scores zero by construction. The operational definition was fixed after the horizon results were known. <!-- figures/fig5_crossing_f1 -->
+
 ## Appendix A. Degradation ratios per station
 
 **Table A1.** Ratio of drought (T4) to pre-drought (first half of 2019) MAE for a static panel Ridge model on level lags (seven-day horizon) trained on 2018 targets, at the five stations with T4 rows <!-- results/drift_regression.csv -->. A ratio above 1 means the model degraded in the drought. The main text uses the panel model with the BRG3 suspect segment excluded. The last two columns keep the segment, to show its effect: at BRG3 it would raise the panel ratio from 1.95 to 3.40, which is why the segment is excluded from every feature, target, and metric. With the segment excluded, only nine drought rows remain at BRG3.
