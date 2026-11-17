@@ -14,3 +14,5 @@ __pycache__/
 # Built by docs/manuscript/build_docx.py
 docs/manuscript/manuscript.docx
 docs/manuscript/highlights.docx
+docs/manuscript/manuscript_camera_ready.pdf
+docs/manuscript/manuscript_camera_ready.tex
