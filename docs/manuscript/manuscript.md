@@ -9,7 +9,13 @@ Status: full draft; see [TODO] and VERIFY comments before submission.
 
 <!-- Working title. Alternative: "When does adaptive learning pay off? Forecasting tropical peat groundwater tables through a regime shift" -->
 
-**Authors:** [TODO]
+**Authors:** [TODO First Author]^a,\*^, [TODO Second Author]^b^
+
+^a^ [TODO Affiliation, city, postal code, country]
+
+^b^ [TODO Affiliation, city, postal code, country]
+
+^\*^ Corresponding author. E-mail address: [TODO]
 
 ## Highlights
 
@@ -23,11 +29,22 @@ Status: full draft; see [TODO] and VERIFY comments before submission.
 
 ## Abstract
 
-Groundwater-table (GWT) forecasts could support fire prevention in drained tropical peatlands, but they are useful only if they beat a forecast that repeats today's level and hold up when the hydrological regime changes. We asked whether static, periodically retrained, and continual-learning models keep GWT forecasts accurate through a regime shift. Using daily records from eight monitoring stations in Jambi and West Kalimantan, Indonesia (2018–2019), we split the data into five consecutive regimes, including the 2019 El Niño drought. Panel Ridge, LightGBM, and LSTM models were evaluated online against persistence at 3- to 30-day horizons, under a decision rule fixed in a git tag before the horizons were run. No candidate met the rule at any horizon: pooled skill over the evaluation period was negative throughout, and the best value per horizon ranged from −16% to −2%. During the drought every candidate lost to persistence, by 17% to 42% for the best one. Four pipeline diagnostics did not change the outcome, and experience replay and elastic weight consolidation were indistinguishable from periodic retraining in 13 of 15 drought comparisons. On crossings of the −0.4 m regulatory threshold, which persistence cannot predict, the trained models scored F1 up to 0.47 and beat a damped-trend reference in 19 of 25 cases. Persistence is therefore a demanding benchmark for slow peat dynamics, and adaptation that learns only from past regimes cannot anticipate a drought. We state the regime dependence of the best forecaster as a hypothesis for confirmatory testing on independent data.
+Groundwater-table (GWT) forecasts could support fire prevention in drained tropical peatlands, but only if they beat persistence and survive changes of hydrological regime. With daily records from eight stations in Jambi and West Kalimantan, Indonesia (2018–2019), we tested static, periodically retrained, and continual-learning panel models online against persistence at 3- to 30-day horizons, under a decision rule locked in a git tag beforehand. No candidate met the rule: pooled skill was negative at every horizon (best −2% to −16%), and during the 2019 El Niño drought every candidate lost to persistence. Four pipeline diagnostics changed nothing, and replay and elastic weight consolidation were indistinguishable from retraining in 13 of 15 drought comparisons. On crossings of the −0.4 m regulatory threshold, which persistence cannot predict, models reached F1 up to 0.47. Persistence is a demanding benchmark for slow peat dynamics, and adaptation that learns from past regimes cannot anticipate a drought.
 
-<!-- pooled best per horizon −8/−16/−14/−9/−2% (horizon_criteria.csv); T4 best −32/−39/−42/−32/−17% (horizon_summary.csv); 13/15 (table4b); F1 0.14–0.47, 19/25 (diagnostics_crossing_f1.csv, damped_trend_vs_models_crossing.csv) -->
+<!-- Abstract kept at <= 150 words (EMS limit reported by a secondary source; verify in the Guide for Authors). Longer 248-word version in git history (eca8264). pooled best per horizon −8/−16/−14/−9/−2% (horizon_criteria.csv); T4 best −32/−39/−42/−32/−17% (horizon_summary.csv); 13/15 (table4b); F1 0.14–0.47, 19/25 (diagnostics_crossing_f1.csv, damped_trend_vs_models_crossing.csv) -->
 
 **Keywords:** tropical peatland; groundwater table; forecasting; persistence baseline; continual learning; El Niño; pre-specified analysis
+
+## Software and data availability
+
+- **Name:** cl-tmat (code, locked configuration, run logs, results, and figures for this article)
+- **Developers:** [TODO author names]; contact: [TODO corresponding author e-mail]
+- **Year first available:** 2026
+- **Program language:** Python 3.11 (pipeline and models); JavaScript for Google Earth Engine (CHIRPS extraction)
+- **Main libraries:** NumPy, pandas, SciPy, scikit-learn, LightGBM, PyTorch, statsmodels, Matplotlib; exact versions in `requirements-lock.txt`
+- **Hardware required:** a standard laptop CPU; no GPU. The full rebuild (`reproduce.sh`) takes several hours on a 4-core laptop.
+- **Availability and cost:** free and open source at https://doi.org/10.5281/zenodo.[TODO]; licence [TODO]. The archive includes the annotated git tags that mark each stage of the analysis.
+- **Data:** daily groundwater table records of eight BRG stations, 2018–2019, published as supplementary material to Taufik et al. (2022), https://doi.org/10.1016/j.dib.2022.107903; not redistributed in the archive. CHIRPS v2.0 daily rainfall (Funk et al., 2015), extracted with the script included in the archive; the extracted series are included.
 
 ---
 
@@ -377,17 +394,21 @@ Four points follow from this study.
 
 The staged locking protocol made the negative result possible to report. Each stage fixed the next decision before its results were known, so the absence of a winning model is an outcome of the design rather than the end of a search.
 
-## Figure captions
+## CRediT authorship contribution statement
 
-**Fig. 1.** Data and evidence of degradation. (a) Daily groundwater table at the four Batanghari (Jambi) stations (top) and the four Kubu Raya (West Kalimantan) stations (bottom), in metres, negative below the surface; shading marks the five regimes T1–T5. The dotted line marks the BRG3 suspect segment, which is excluded from all features, targets, and metrics. (b) Monthly CHIRPS rainfall, mean of the stations in each peatland. (c) MAE of a static panel Ridge model (level lags, seven-day horizon, trained on 2018 targets) before the drought (January–June 2019, open circles) and during the 2019 El Niño drought (T4, filled circles), at the five stations with T4 rows; labels give the drought-to-pre-drought ratio and the number of drought rows. <!-- figures/fig1_tmat_regimes_drift; results/drift_regression.csv -->
+[TODO First Author]: Conceptualization, Methodology, Software, Formal analysis, Data curation, Writing – original draft, Visualization. [TODO Second Author]: [TODO]. <!-- authors decide -->
 
-**Fig. 2.** Online skill against persistence (1 − MAE/MAE_persistence) by forecast horizon for the five candidates and the damped-trend reference (φ = 0.9, exploratory): (a) pooled over T3–T5, (b) wet season T3, (c) El Niño drought T4, (d) recovery T5. Values below −100% are drawn at the axis floor (▼); exact values are in Table 2 and `results/horizon_summary.csv`. LSTM values are means over five seeds. <!-- figures/fig2_skill_horizon -->
+## Declaration of competing interest
 
-**Fig. 3.** Continual learning against periodic retraining: online skill of B5 LSTM, the fine-tuning control, replay, and EWC, means over five seeds, (a) in the El Niño drought T4 and (b) pooled over T3–T5. Standard deviations are given in Table 4. <!-- figures/fig3_cl_t4 -->
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper. <!-- authors confirm -->
 
-**Fig. 4.** Diagnostics (exploratory, post hoc): online T4 skill of the best of the five candidates under the locked pipeline and under D1 (change target), D2 (expanding normalisation), D3 (D1 + D2), and D4 (B5 retrained with holdout rows). D1 coincides with the locked pipeline because B5 LSTM, which D1 does not change, is the best candidate in T4; for the same reason D3 coincides with D2 at most horizons. <!-- figures/fig4_diagnostics_t4 -->
+## Declaration of generative AI and AI-assisted technologies in the manuscript preparation process
 
-**Fig. 5.** F1 score for forecasting crossings of the −0.4 m threshold (level at *t* at or above −0.4 m and level at *t* + *h* below it) over T3–T5, for the five candidates and the damped-trend reference. *n* is the number of observed crossings per horizon. Persistence scores zero by construction. The operational definition was fixed after the horizon results were known. <!-- figures/fig5_crossing_f1 -->
+During the preparation of this work the authors used Claude (Anthropic) to assist with writing and running analysis code, searching the literature, and drafting and editing the text. After using this tool, the authors reviewed and edited the content as needed and take full responsibility for the content of the published article. <!-- authors confirm wording; Elsevier requires this declaration when such tools were used -->
+
+## Acknowledgements
+
+We thank Taufik et al. for publishing the groundwater table dataset under an open licence. [TODO funding and other acknowledgements]
 
 ## Appendix A. Degradation ratios per station
 
@@ -403,51 +424,98 @@ The staged locking protocol made the negative result possible to report. Each st
 | BRG20 | 59 | 20 | 0.99 | 2.20 | 0.99 | 2.20 |
 <!-- END TABLEA1 -->
 
-## Data and code availability
-
-The groundwater table data are publicly available as supplementary material to Taufik et al. (2022), https://doi.org/10.1016/j.dib.2022.107903. CHIRPS rainfall is publicly available (Funk et al., 2015). All code, locked configuration files, run logs, results, and figures are archived at Zenodo, https://doi.org/10.5281/zenodo.[TODO], including the annotated git tags that mark each stage of the analysis. The script `reproduce.sh` rebuilds every number, table, and figure from the raw data; the exact software versions are listed in `requirements-lock.txt`.
-
 ## References
 
-<!-- DOIs checked against Crossref on 2026-11-16, except entries marked [no DOI]. Verify page ranges and formatting to EMS style before submission. -->
+<!-- Elsevier Harvard (author-year) style. DOIs checked against Crossref on 2026-11-16 and 2026-11-17. Grey-literature entries marked VERIFY need a primary source and URL before submission. -->
 
-- Carbon Brief (2026). El Niño: Indonesia fire emissions in 2026 'on track' to match record for this century. 11 September 2026. <!-- add URL; verify 76 MtC -->
-- CNN Indonesia (2026). Kemenkes catat 283.270 orang idap ISPA akibat karhutla. 14 October 2026. <!-- add URL; prefer Ministry of Health primary release -->
-- Chaudhry, A., Rohrbach, M., Elhoseiny, M., Ajanthan, T., Dokania, P.K., Torr, P.H.S., Ranzato, M. (2019). On tiny episodic memories in continual learning. arXiv:1902.10486. [no DOI]
-- CREA (Centre for Research on Energy and Clean Air) (2026). Choking on inaction: Indonesia's fires led to 1,700 deaths in August. 14 September 2026. https://energyandcleanair.org/?p=16305 <!-- verify method -->
-- Dawid, A.P. (1984). Statistical theory: the prequential approach. Journal of the Royal Statistical Society A, 147, 278–292. <!-- DOI to check -->
-- De Lange, M., Aljundi, R., Masana, M., Parisot, S., Jia, X., Leonardis, A., Slabaugh, G., Tuytelaars, T. (2022). A continual learning survey: defying forgetting in classification tasks. IEEE Transactions on Pattern Analysis and Machine Intelligence, 44, 3366–3385. https://doi.org/10.1109/TPAMI.2021.3057446
-- Funk, C., et al. (2015). The climate hazards infrared precipitation with stations — a new environmental record for monitoring extremes. Scientific Data, 2, 150066. <!-- DOI to check -->
-- Gama, J., Žliobaitė, I., Bifet, A., Pechenizkiy, M., Bouchachia, A. (2014). A survey on concept drift adaptation. ACM Computing Surveys, 46(4), 1–37. https://doi.org/10.1145/2523813
-- Gardner, E.S., McKenzie, E. (1985). Forecasting trends in time series. Management Science, 31, 1237–1246. <!-- DOI to check -->
-- Gilbert, J., Boateng, C.D., Aryee, J.N.A., et al. (2025). A systematic review of machine learning models for groundwater level prediction. Applied Computing and Geosciences, 100303. https://doi.org/10.1016/j.acags.2025.100303
-- Government of Indonesia (2016). Government Regulation No. 57/2016 amending Government Regulation No. 71/2014 on the protection and management of peat ecosystems. <!-- verify article number of the 0.4 m criterion -->
-- Hayasaka, H., Usup, A., Naito, D. (2020). New approach evaluating peatland fires in Indonesian factors. Remote Sensing, 12, 2055. https://doi.org/10.3390/rs12122055
-- Hochreiter, S., Schmidhuber, J. (1997). Long short-term memory. Neural Computation, 9, 1735–1780.
-- Holm, S. (1979). A simple sequentially rejective multiple test procedure. Scandinavian Journal of Statistics, 6, 65–70.
-- Hooijer, A., Page, S., Jauhiainen, J., Lee, W.A., Lu, X.X., Idris, A., Anshari, G. (2012). Subsidence and carbon loss in drained tropical peatlands. Biogeosciences, 9, 1053–1071. https://doi.org/10.5194/bg-9-1053-2012
-- Huijnen, V., Wooster, M.J., Kaiser, J.W., et al. (2016). Fire carbon emissions over maritime southeast Asia in 2015 largest since 1997. Scientific Reports, 6, 26886. https://doi.org/10.1038/srep26886
-- Irfan, M., Koriyanti, E., Saleh, K., et al. (2024). Dynamics of peatland fires in South Sumatra in 2019: role of groundwater levels. Land, 13, 373. https://doi.org/10.3390/land13030373
-- Ismail, I., Haghighi, A.T., Marttila, H., et al. (2021). Water table variations on different land use units in a drained tropical peatland island of Indonesia. Hydrology Research, 52, 1372–1388. https://doi.org/10.2166/nh.2021.062 <!-- check end page -->
-- Jibhakate, T.M., Katpatal, Y.B. (2024). Prediction of rainfall and groundwater using machine learning algorithms for Nagpur Division. MAUSAM, 75(3). https://doi.org/10.54302/mausam.v75i3.6272
-- Kapoor, S., Narayanan, A. (2023). Leakage and the reproducibility crisis in machine-learning-based science. Patterns, 4, 100804. https://doi.org/10.1016/j.patter.2023.100804
-- Ke, G., et al. (2017). LightGBM: a highly efficient gradient boosting decision tree. Advances in Neural Information Processing Systems 30. [no DOI]
-- Kirkpatrick, J., et al. (2017). Overcoming catastrophic forgetting in neural networks. PNAS, 114, 3521–3526. <!-- DOI to check -->
-- Klemeš, V. (1986). Operational testing of hydrological simulation models. Hydrological Sciences Journal, 31, 13–24. https://doi.org/10.1080/02626668609491024
-- Li, L., Sali, A.B., Liew, J.T., et al. (2024). Machine learning for peatland ground water level (GWL) prediction via IoT system. IEEE Access, 12. https://doi.org/10.1109/ACCESS.2024.3419237
-- Madani Berkelanjutan (2026). August 2026: the peak of the forest and land fire crisis and a real threat to Indonesia's climate commitments. 28 August 2026. https://madaniberkelanjutan.id/news-event/august-2026-the-peak-of-the-forest-and-land-fire-crisis-and-a-real-threat-to-indonesia-s-climate-commitments
-- Nosek, B.A., Ebersole, C.R., DeHaven, A.C., Mellor, D.T. (2018). The preregistration revolution. PNAS, 115, 2600–2606. https://doi.org/10.1073/pnas.1708274114
-- Page, S.E., Siegert, F., Rieley, J.O., Boehm, H.-D.V., Jaya, A., Limin, S. (2002). The amount of carbon released from peat and forest fires in Indonesia during 1997. Nature, 420, 61–65. https://doi.org/10.1038/nature01131
-- Pappenberger, F., Ramos, M.H., Cloke, H.L., Wetterhall, F., Alfieri, L., Bogner, K., Mueller, A., Salamon, P. (2015). How do I know if my forecasts are better? Using benchmarks in hydrological ensemble prediction. Journal of Hydrology, 522, 697–713. https://doi.org/10.1016/j.jhydrol.2015.01.024
-- Putra, S.S., Holden, J., Baird, A.J. (2021). The effects of ditch dams on water-level dynamics in tropical peatlands. Hydrological Processes, 35, e14174. https://doi.org/10.1002/hyp.14174
-- Reuters (2026a). [Ministry of Forestry burned-area figure, 202,000 ha as of 18 August 2026.] <!-- find exact article; Wikipedia cites Reuters 11 Aug and Kumparan 18 Aug 2026; prefer SiPongi -->
-- Reuters (2026b). [Nusantara Atlas: 1.92 million ha burned by end of September 2026.] 20 October 2026. <!-- add title and URL -->
-- Save the Children (2026). Indonesia wildfire haze threatens children across Southeast Asia and closes schools. <!-- add date and URL -->
-- Taufik, M., Setiawan, B.I., Van Lanen, H.A.J. (2015). Modification of a fire drought index for tropical wetland ecosystems by including water table depth. Agricultural and Forest Meteorology, 203, 1–10. https://doi.org/10.1016/j.agrformet.2014.12.006 <!-- check volume/pages -->
-- Taufik, M., Veldhuizen, A.A., Wösten, J.H.M., Van Lanen, H.A.J. (2019). Exploration of the importance of physical properties of Indonesian peatlands to assess critical groundwater table depths, associated drought and fire hazard. Geoderma, 347, 160–169. https://doi.org/10.1016/j.geoderma.2019.04.001 <!-- check authors/volume/pages -->
-- Taufik, M., TW, M., Awaluddin, Mukharomah, A.K., Minasny, B. (2022). Groundwater table and soil-hydrological properties datasets of Indonesian peatlands. Data in Brief, 41, 107903. https://doi.org/10.1016/j.dib.2022.107903
-- Utomo, W.Y., Aini, F.K., Askary, M., et al. (2026). Machine learning-aided groundwater level and CO2 emission estimations in Indonesian tropical peatland. Environmental Advances, 100762. https://doi.org/10.1016/j.envadv.2026.100762
-- Wilcoxon, F. (1945). Individual comparisons by ranking methods. Biometrics Bulletin, 1, 80–83.
-- Wösten, J.H.M., Clymans, E., Page, S.E., Rieley, J.O., Limin, S.H. (2008). Peat–water interrelationships in a tropical peatland ecosystem in Southeast Asia. Catena, 73, 212–224. https://doi.org/10.1016/j.catena.2007.07.010
-- Wunsch, A., Liesch, T., Broda, S. (2021). Groundwater level forecasting with artificial neural networks: a comparison of long short-term memory (LSTM), convolutional neural networks (CNNs), and non-linear autoregressive networks with exogenous input (NARX). Hydrology and Earth System Sciences, 25, 1671–1687. https://doi.org/10.5194/hess-25-1671-2021
-- Yonekura, K., Miyazaki, S., Aichi, M., et al. (2025). Prediction of groundwater level in Indonesian tropical peatland forest plantations using machine learning. Artificial Intelligence in Geosciences, 100148. https://doi.org/10.1016/j.aiig.2025.100148
+Carbon Brief, 2026. El Niño: Indonesia fire emissions in 2026 'on track' to match record for this century. 11 September 2026. <!-- VERIFY: add URL; verify 76 Mt C -->
+
+Chaudhry, A., Rohrbach, M., Elhoseiny, M., Ajanthan, T., Dokania, P.K., Torr, P.H.S., Ranzato, M., 2019. On tiny episodic memories in continual learning. arXiv preprint arXiv:1902.10486. <!-- VERIFY author list (no DOI) -->
+
+CNN Indonesia, 2026. Kemenkes catat 283.270 orang idap ISPA akibat karhutla [Ministry of Health records 283,270 people with acute respiratory infection due to forest and land fires]. 14 October 2026. <!-- VERIFY: add URL; prefer the Ministry of Health release -->
+
+CREA (Centre for Research on Energy and Clean Air), 2026. Choking on inaction: Indonesia's fires led to 1,700 deaths in August. 14 September 2026. https://energyandcleanair.org/?p=16305 <!-- VERIFY method -->
+
+Dawid, A.P., 1984. Statistical theory: the prequential approach. Journal of the Royal Statistical Society. Series A (General) 147, 278–292. https://doi.org/10.2307/2981683
+
+De Lange, M., Aljundi, R., Masana, M., Parisot, S., Jia, X., Leonardis, A., Slabaugh, G., Tuytelaars, T., 2022. A continual learning survey: defying forgetting in classification tasks. IEEE Transactions on Pattern Analysis and Machine Intelligence 44, 3366–3385. https://doi.org/10.1109/TPAMI.2021.3057446
+
+Funk, C., Peterson, P., Landsfeld, M., Pedreros, D., Verdin, J., Shukla, S., Husak, G., Rowland, J., Harrison, L., Hoell, A., Michaelsen, J., 2015. The climate hazards infrared precipitation with stations—a new environmental record for monitoring extremes. Scientific Data 2, 150066. https://doi.org/10.1038/sdata.2015.66
+
+Gama, J., Žliobaitė, I., Bifet, A., Pechenizkiy, M., Bouchachia, A., 2014. A survey on concept drift adaptation. ACM Computing Surveys 46, 1–37. https://doi.org/10.1145/2523813
+
+Gardner, E.S., McKenzie, E., 1985. Forecasting trends in time series. Management Science 31, 1237–1246. https://doi.org/10.1287/mnsc.31.10.1237
+
+Gilbert, J., Boateng, C.D., Aryee, J.N.A., Osei, M.A., Wemegah, D.D., Gidigasu, S.S.R., Britwum, A., Afful, S.K., Touré, H., Mensah, V., Owusu-Afriyie, P., 2025. A systematic review of machine learning models for groundwater level prediction. Applied Computing and Geosciences 28, 100303. https://doi.org/10.1016/j.acags.2025.100303 <!-- VERIFY first author's family name: Crossref lists 'Gilbert Jesse', OpenAlex 'Jesse Gilbert'. If the family name is Jesse, cite as Jesse et al. (2025). -->
+
+Government of Indonesia, 2016. Peraturan Pemerintah Nomor 57 Tahun 2016 tentang Perubahan atas Peraturan Pemerintah Nomor 71 Tahun 2014 tentang Perlindungan dan Pengelolaan Ekosistem Gambut [Government Regulation No. 57/2016 amending Government Regulation No. 71/2014 on the protection and management of peat ecosystems]. Jakarta. <!-- VERIFY article number of the 0.4 m criterion -->
+
+Hayasaka, H., Usup, A., Naito, D., 2020. New approach evaluating peatland fires in Indonesian factors. Remote Sensing 12, 2055. https://doi.org/10.3390/rs12122055
+
+Hochreiter, S., Schmidhuber, J., 1997. Long short-term memory. Neural Computation 9, 1735–1780. https://doi.org/10.1162/neco.1997.9.8.1735
+
+Holm, S., 1979. A simple sequentially rejective multiple test procedure. Scandinavian Journal of Statistics 6, 65–70.
+
+Hooijer, A., Page, S., Jauhiainen, J., Lee, W.A., Lu, X.X., Idris, A., Anshari, G., 2012. Subsidence and carbon loss in drained tropical peatlands. Biogeosciences 9, 1053–1071. https://doi.org/10.5194/bg-9-1053-2012
+
+Huijnen, V., Wooster, M.J., Kaiser, J.W., Gaveau, D.L.A., Flemming, J., Parrington, M., Inness, A., Murdiyarso, D., Main, B., van Weele, M., 2016. Fire carbon emissions over maritime southeast Asia in 2015 largest since 1997. Scientific Reports 6, 26886. https://doi.org/10.1038/srep26886
+
+Irfan, M., Koriyanti, E., Saleh, K., Hadi, Safrina, S., Awaludin, Sulaiman, A., Akhsan, H., Suhadi, Suwignyo, R.A., Choi, E., Iskandar, I., 2024. Dynamics of peatland fires in South Sumatra in 2019: role of groundwater levels. Land 13, 373. https://doi.org/10.3390/land13030373
+
+Ismail, I., Haghighi, A.T., Marttila, H., Kurniawan, U., Karyanto, O., Kløve, B., 2021. Water table variations on different land use units in a drained tropical peatland island of Indonesia. Hydrology Research 52, 1372–1388. https://doi.org/10.2166/nh.2021.062
+
+Jibhakate, T.M., Katpatal, Y.B., 2024. Prediction of rainfall and groundwater using machine learning algorithms for Nagpur Division. Mausam 75, 729–746. https://doi.org/10.54302/mausam.v75i3.6272
+
+Kapoor, S., Narayanan, A., 2023. Leakage and the reproducibility crisis in machine-learning-based science. Patterns 4, 100804. https://doi.org/10.1016/j.patter.2023.100804
+
+Ke, G., Meng, Q., Finley, T., Wang, T., Chen, W., Ma, W., Ye, Q., Liu, T.-Y., 2017. LightGBM: a highly efficient gradient boosting decision tree, in: Advances in Neural Information Processing Systems 30. Curran Associates, pp. 3146–3154. <!-- VERIFY authors and pages (no DOI; from proceedings) -->
+
+Kirkpatrick, J., Pascanu, R., Rabinowitz, N., Veness, J., Desjardins, G., Rusu, A.A., Milan, K., Quan, J., Ramalho, T., Grabska-Barwinska, A., Hassabis, D., Clopath, C., Kumaran, D., Hadsell, R., 2017. Overcoming catastrophic forgetting in neural networks. Proceedings of the National Academy of Sciences 114, 3521–3526. https://doi.org/10.1073/pnas.1611835114
+
+Klemeš, V., 1986. Operational testing of hydrological simulation models. Hydrological Sciences Journal 31, 13–24. https://doi.org/10.1080/02626668609491024
+
+Li, L., Sali, A., Liew, J.T., Saleh, N.L., Ali, A.M., 2024. Machine learning for peatland ground water level (GWL) prediction via IoT system. IEEE Access 12, 89585–89598. https://doi.org/10.1109/ACCESS.2024.3419237
+
+Madani Berkelanjutan, 2026. August 2026: the peak of the forest and land fire crisis and a real threat to Indonesia's climate commitments. 28 August 2026. https://madaniberkelanjutan.id/news-event/august-2026-the-peak-of-the-forest-and-land-fire-crisis-and-a-real-threat-to-indonesia-s-climate-commitments
+
+Nosek, B.A., Ebersole, C.R., DeHaven, A.C., Mellor, D.T., 2018. The preregistration revolution. Proceedings of the National Academy of Sciences 115, 2600–2606. https://doi.org/10.1073/pnas.1708274114
+
+Page, S.E., Siegert, F., Rieley, J.O., Boehm, H.-D.V., Jaya, A., Limin, S., 2002. The amount of carbon released from peat and forest fires in Indonesia during 1997. Nature 420, 61–65. https://doi.org/10.1038/nature01131
+
+Pappenberger, F., Ramos, M.H., Cloke, H.L., Wetterhall, F., Alfieri, L., Bogner, K., Mueller, A., Salamon, P., 2015. How do I know if my forecasts are better? Using benchmarks in hydrological ensemble prediction. Journal of Hydrology 522, 697–713. https://doi.org/10.1016/j.jhydrol.2015.01.024
+
+Putra, S.S., Holden, J., Baird, A.J., 2021. The effects of ditch dams on water-level dynamics in tropical peatlands. Hydrological Processes 35, e14174. https://doi.org/10.1002/hyp.14174
+
+Reuters, 2026a. [Ministry of Forestry burned-area figure, 202,000 ha as of 18 August 2026.] <!-- VERIFY: exact article, or cite SiPongi directly -->
+
+Reuters, 2026b. [Nusantara Atlas: 1.92 million ha burned by end of September 2026.] 20 October 2026. <!-- VERIFY: title and URL -->
+
+Save the Children, 2026. Indonesia wildfire haze threatens children across Southeast Asia and closes schools. <!-- VERIFY: date and URL -->
+
+Taufik, M., Setiawan, B.I., van Lanen, H.A.J., 2015. Modification of a fire drought index for tropical wetland ecosystems by including water table depth. Agricultural and Forest Meteorology 203, 1–10. https://doi.org/10.1016/j.agrformet.2014.12.006
+
+Taufik, M., TW, M., Awaluddin, Mukharomah, A.K., Minasny, B., 2022. Groundwater table and soil-hydrological properties datasets of Indonesian peatlands. Data in Brief 41, 107903. https://doi.org/10.1016/j.dib.2022.107903
+
+Taufik, M., Veldhuizen, A.A., Wösten, J.H.M., van Lanen, H.A.J., 2019. Exploration of the importance of physical properties of Indonesian peatlands to assess critical groundwater table depths, associated drought and fire hazard. Geoderma 347, 160–169. https://doi.org/10.1016/j.geoderma.2019.04.001
+
+Utomo, W.Y., Aini, F.K., Askary, M., Anwar, S., Tarigan, S.D., Barus, B., 2026. Machine learning-aided groundwater level and CO₂ emission estimations in Indonesian tropical peatland. Environmental Advances 26, 100762. https://doi.org/10.1016/j.envadv.2026.100762
+
+Wilcoxon, F., 1945. Individual comparisons by ranking methods. Biometrics Bulletin 1, 80–83. https://doi.org/10.2307/3001968
+
+Wösten, J.H.M., Clymans, E., Page, S.E., Rieley, J.O., Limin, S.H., 2008. Peat–water interrelationships in a tropical peatland ecosystem in Southeast Asia. Catena 73, 212–224. https://doi.org/10.1016/j.catena.2007.07.010
+
+Wunsch, A., Liesch, T., Broda, S., 2021. Groundwater level forecasting with artificial neural networks: a comparison of long short-term memory (LSTM), convolutional neural networks (CNNs), and non-linear autoregressive networks with exogenous input (NARX). Hydrology and Earth System Sciences 25, 1671–1687. https://doi.org/10.5194/hess-25-1671-2021
+
+Yonekura, K., Miyazaki, S., Aichi, M., Nishizu, T., Hasegawa, M., Suzuki, K., 2025. Prediction of groundwater level in Indonesian tropical peatland forest plantations using machine learning. Artificial Intelligence in Geosciences 6, 100148. https://doi.org/10.1016/j.aiig.2025.100148
+
+## Figure captions
+
+**Fig. 1.** Data and evidence of degradation. (a) Daily groundwater table at the four Batanghari (Jambi) stations (top) and the four Kubu Raya (West Kalimantan) stations (bottom), in metres, negative below the surface; shading marks the five regimes T1–T5. The dotted line marks the BRG3 suspect segment, which is excluded from all features, targets, and metrics. (b) Monthly CHIRPS rainfall, mean of the stations in each peatland. (c) MAE of a static panel Ridge model (level lags, seven-day horizon, trained on 2018 targets) before the drought (January–June 2019, open circles) and during the 2019 El Niño drought (T4, filled circles), at the five stations with T4 rows; labels give the drought-to-pre-drought ratio and the number of drought rows. <!-- figures/fig1_tmat_regimes_drift; results/drift_regression.csv -->
+
+**Fig. 2.** Online skill against persistence (1 − MAE/MAE_persistence) by forecast horizon for the five candidates and the damped-trend reference (φ = 0.9, exploratory): (a) pooled over T3–T5, (b) wet season T3, (c) El Niño drought T4, (d) recovery T5. Values below −100% are drawn at the axis floor (▼); exact values are in Table 2 and `results/horizon_summary.csv`. LSTM values are means over five seeds. <!-- figures/fig2_skill_horizon -->
+
+**Fig. 3.** Continual learning against periodic retraining: online skill of B5 LSTM, the fine-tuning control, replay, and EWC, means over five seeds, (a) in the El Niño drought T4 and (b) pooled over T3–T5. Standard deviations are given in Table 4. <!-- figures/fig3_cl_t4 -->
+
+**Fig. 4.** Diagnostics (exploratory, post hoc): online T4 skill of the best of the five candidates under the locked pipeline and under D1 (change target), D2 (expanding normalisation), D3 (D1 + D2), and D4 (B5 retrained with holdout rows). D1 coincides with the locked pipeline because B5 LSTM, which D1 does not change, is the best candidate in T4; for the same reason D3 coincides with D2 at most horizons. <!-- figures/fig4_diagnostics_t4 -->
+
+**Fig. 5.** F1 score for forecasting crossings of the −0.4 m threshold (level at *t* at or above −0.4 m and level at *t* + *h* below it) over T3–T5, for the five candidates and the damped-trend reference. *n* is the number of observed crossings per horizon. Persistence scores zero by construction. The operational definition was fixed after the horizon results were known. <!-- figures/fig5_crossing_f1 -->
